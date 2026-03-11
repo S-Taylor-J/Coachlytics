@@ -1,19 +1,36 @@
-# Xcode
+# macOS system files
+
+.DS_Store
+__MACOSX/
+
+# Xcode user-specific data
+
+xcuserdata/
+*.xcuserstate
+
+# Xcode build products
+
 DerivedData/
 build/
-*.xcuserstate
-xcuserdata/
 
-# macOS
-.DS_Store
+# Workspace user data
+
+*.xcworkspace/xcuserdata/
+
+# Xcode project user data
+
+*.xcodeproj/xcuserdata/
 
 # Swift Package Manager
+
 .build/
 
-# CocoaPods
+# CocoaPods (if used)
+
 Pods/
 
-# Fastlane
+# Fastlane (if used)
+
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
