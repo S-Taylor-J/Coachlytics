@@ -185,6 +185,7 @@ struct PitchView: View {
     @AppStorage("minPlayersOnPitch") private var minPlayersOnPitch = 11
     @AppStorage("enableSkillFilter") private var enableSkillFilter = false
     @AppStorage("requiredSkills") private var requiredSkills: String = ""
+    @AppStorage("showPlayerTimers") private var showPlayerTimers = true
     
     @State private var showNotification = false
     @State private var showSkillNotification = false
@@ -195,6 +196,9 @@ struct PitchView: View {
     
     // Swap player state
     @State private var selectedPitchPlayerForSwap: PitchPlayer? = nil
+    
+    // Bench collapse state
+    @State private var isBenchCollapsed: Bool = false
     
     // Shared player time service (continues running when navigating away)
     @ObservedObject private var playerTimeService = PlayerTimeService.shared
@@ -212,19 +216,12 @@ struct PitchView: View {
         UIDevice.current.userInterfaceIdiom == .phone
     }
     
-    // Left panel width based on device
+    // Left panel width based on device and collapse state
     private var leftPanelWidth: CGFloat {
-        isCompact ? 90 : 140
+        if isBenchCollapsed { return 28 }
+        return isCompact ? 78 : 116
     }
-    
-    // Responsive sizing - maximized pitch
-    private var pitchWidth: CGFloat {
-        let panelAndPadding = isCompact ? 130 : 200 // Account for left panel + padding
-        return (UIScreen.main.bounds.width) - CGFloat(panelAndPadding)
-    }
-    private var pitchHeight: CGFloat {
-        (UIScreen.main.bounds.height) * (isCompact ? 0.72 : 0.78)
-    }
+
     
     // Computed property to get player times from the shared service
     private var playerQuarterTimes: [UUID: TimeInterval] {
@@ -286,16 +283,16 @@ struct PitchView: View {
                     // MARK: Left Panel - Team & Squad
                     leftPanel
                         .frame(width: leftPanelWidth)
-                        
-                    Spacer()
+                        .frame(maxHeight: .infinity)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isBenchCollapsed)
                     
                     // MARK: Pitch Area
                     pitchArea
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.horizontal, isCompact ? 12 : 20)
                 .padding(.top, isCompact ? 4 : 8)
-                
-                Spacer()
             }
             
             // MARK: - Floating Notifications
@@ -376,6 +373,9 @@ struct PitchView: View {
             syncPlayersOnPitchWithService()
             // Initialize game timer for sync with match view
             if let game = currentGame {
+                if activeGameId.isEmpty {
+                    activeGameId = game.id.uuidString
+                }
                 gameTimer = GameTimerService.shared.timer(for: game)
             }
             // Track initial game ID
@@ -403,10 +403,14 @@ struct PitchView: View {
         .onChange(of: pitchPlayers) { _, newPlayers in
             validateSkills()
             syncPlayersOnPitchWithService()
+            savePositions()
         }
         .onChange(of: activeGames) { _, newGames in
             // Sync activeQuarterDuration when games list changes
             if let game = newGames.first(where: { $0.id.uuidString == activeGameId }) ?? newGames.first {
+                if activeGameId.isEmpty {
+                    activeGameId = game.id.uuidString
+                }
                 let timer = GameTimerService.shared.timer(for: game)
                 activeQuarterDuration = TimeInterval(timer.quarterDurationInSeconds)
                 gameTimer = timer
@@ -435,6 +439,7 @@ struct PitchView: View {
     // MARK: - Sync Players on Pitch with Service
     private func syncPlayersOnPitchWithService() {
         guard let game = currentGame else { return }
+        playerTimeService.track(game: game)
         let playerIds = pitchPlayers.map { $0.player.id }
         playerTimeService.setPlayersOnPitch(playerIds, gameId: game.id)
         
@@ -720,15 +725,98 @@ extension PitchView {
     
     // MARK: Left Panel
     private var leftPanel: some View {
+        Group {
+            if isBenchCollapsed {
+                // Collapsed state — slim tab with expand button and bench count badge
+                collapsedBenchTab
+            } else {
+                // Expanded state — full bench panel
+                expandedBenchPanel
+            }
+        }
+    }
+    
+    private var collapsedBenchTab: some View {
+        VStack(spacing: 8) {
+            // Expand chevron button
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    isBenchCollapsed = false
+                }
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
+            
+            Divider()
+                .padding(.horizontal, 4)
+            
+            // Rotated "Bench" label + player count badge
+            VStack(spacing: 6) {
+                let benchCount = filteredPlayers.filter { p in
+                    !pitchPlayers.contains { $0.player.id == p.id }
+                }.count
+                
+                if benchCount > 0 {
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 20, height: 20)
+                        Text("\(benchCount)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+                
+                Text("Bench")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .rotationEffect(.degrees(-90))
+                    .fixedSize()
+                    .frame(width: 20, height: 60)
+            }
+            .padding(.top, 4)
+            
+            Spacer()
+        }
+        .frame(maxHeight: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 8, x: 0, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(.systemGray5), lineWidth: 1)
+        )
+    }
+    
+    private var expandedBenchPanel: some View {
         VStack(spacing: 0) {
-            // Header
+            // Header with collapse button
             HStack {
                 Image(systemName: "person.3.sequence.fill")
                     .font(.system(size: isCompact ? 10 : 14))
-                Text("Squad")
+                Text("")
                     .font(.system(size: isCompact ? 10 : 15, weight: .semibold, design: .rounded))
                 Spacer()
-
+                // Collapse button
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isBenchCollapsed = true
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(6)
+                        .background(Circle().fill(Color(.systemGray5)))
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, isCompact ? 8 : 14)
             .padding(.top, isCompact ? 8 : 14)
@@ -785,7 +873,8 @@ extension PitchView {
                                 player: player,
                                 quarterPlayPercentage: quarterPlayPercentage(for: player),
                                 playTime: playerQuarterTimes[player.id] ?? 0,
-                                isCompact: isCompact
+                                isCompact: isCompact,
+                                showTimer: showPlayerTimers
                             )
                                 .transition(.asymmetric(
                                     insertion: .scale(scale: 0.8).combined(with: .opacity),
@@ -855,15 +944,7 @@ extension PitchView {
     private var pitchArea: some View {
         GeometryReader { geo in
             ZStack {
-                // Modern pitch with grass effect
-                modernPitchBackground(size: geo.size)
-                
-                // Pitch markings
-                PitchMarkings()
-                    .stroke(
-                        Color.white.opacity(0.85),
-                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
-                    )
+                PitchBackgroundImageView(isDropTargeted: isDropTargeted, imageContentMode: .fill)
                 
                 // Drop zone indicator
                 DropZoneIndicator(
@@ -881,6 +962,7 @@ extension PitchView {
                         quarterPlayPercentage: quarterPlayPercentage(for: pitchPlayer.player),
                         playTime: playerQuarterTimes[pitchPlayer.player.id] ?? 0,
                         isCompact: isCompact,
+                        showTimer: showPlayerTimers,
                         onRemove: {
                             removePlayerFromPitch(pitchPlayer.player)
                         },
@@ -906,7 +988,8 @@ extension PitchView {
                 )
             )
         }
-        .frame(width: pitchWidth, height: pitchHeight)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+         .aspectRatio(1024/1536, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -923,28 +1006,6 @@ extension PitchView {
         )
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.2), radius: 12, x: 0, y: 6)
         .animation(.easeInOut(duration: 0.2), value: isDropTargeted)
-    }
-    
-    // MARK: Modern Pitch Background
-    private func modernPitchBackground(size: CGSize) -> some View {
-        ZStack {
-            // Solid grass color
-            Color(red: 0.18, green: 0.52, blue: 0.22)
-            
-            // Subtle vignette for depth
-            RadialGradient(
-                colors: [.clear, Color.black.opacity(0.1)],
-                center: .center,
-                startRadius: size.width * 0.4,
-                endRadius: size.width * 0.9
-            )
-            
-            // Drop target highlight
-            if isDropTargeted {
-                Color.blue.opacity(0.1)
-                    .transition(.opacity)
-            }
-        }
     }
     
     // MARK: Empty Pitch Overlay

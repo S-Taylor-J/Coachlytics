@@ -13,6 +13,7 @@ struct DraggablePlayerView: View {
     let quarterPlayPercentage: Double // 0.0 to 1.0
     let playTime: TimeInterval // Time played in seconds
     var isCompact: Bool = false // True for iPhone, false for iPad
+    var showTimer: Bool = true
     
     // Format time as MM:SS
     private var formattedPlayTime: String {
@@ -97,13 +98,15 @@ struct DraggablePlayerView: View {
                 .lineLimit(1)
             
             // Time display
-            HStack(spacing: 3) {
-                Image(systemName: "clock.fill")
-                    .font(.system(size: isCompact ? 8 : 10))
-                    .foregroundColor(.secondary)
-                Text(formattedPlayTime)
-                    .font(.system(size: isCompact ? 9 : 11, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary)
+            if showTimer {
+                HStack(spacing: 3) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: isCompact ? 8 : 10))
+                        .foregroundColor(.secondary)
+                    Text(formattedPlayTime)
+                        .font(.system(size: isCompact ? 9 : 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
             }
             
             // Quarter play percentage bar

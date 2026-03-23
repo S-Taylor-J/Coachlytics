@@ -14,6 +14,7 @@ struct SettingsView: View {
     @AppStorage("requiredSkills") private var requiredSkills: String = ""
     @AppStorage("gameSettingsData") private var gameSettingsData: String = ""
     @AppStorage("defaultTeamId") private var defaultTeamId: String = ""
+    @AppStorage("showPlayerTimers") private var showPlayerTimers = false
     
     @Query(sort: \Team.name) private var teams: [Team]
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
@@ -136,6 +137,15 @@ struct SettingsView: View {
                     Label("Pitch Skill Filter", systemImage: "line.3.horizontal.decrease.circle")
                 } footer: {
                     Text(enableSkillFilter ? "Only players with selected skills will be available for the pitch." : "All players will be available regardless of skills.")
+                }
+
+                // MARK: - Pitch Display
+                Section {
+                    Toggle("Show Player Timers", isOn: $showPlayerTimers)
+                } header: {
+                    Label("Pitch Display", systemImage: "clock")
+                } footer: {
+                    Text("Toggle timer badges under players on the pitch and bench.")
                 }
                 
                 // MARK: - Event Recording Settings
@@ -817,29 +827,45 @@ struct CircleResultAppearanceView: View {
                                         endPoint: .bottom
                                     )
                                 )
-                                .frame(height: 100)
+                                .frame(height: 120)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                                         .stroke(resetFlash ? Color.green : Color.green.opacity(0.3), lineWidth: resetFlash ? 2 : 1)
                                 )
                             
-                            // Event markers
-                            HStack(spacing: 20) {
-                                ForEach(CircleResult.allCases, id: \.self) { result in
-                                    VStack(spacing: 8) {
-                                        CircleResultPreview(
-                                            appearance: settings.appearance(for: result),
-                                            showSymbol: settings.showSymbolsOnPitch,
-                                            size: 40
-                                        )
-                                        
-                                        Text(shortName(for: result))
-                                            .font(.system(size: 10, weight: .semibold, design: .rounded))
-                                            .foregroundStyle(.primary.opacity(0.8))
-                                            .lineLimit(1)
+                            GeometryReader { proxy in
+                                let count = CGFloat(CircleResult.allCases.count)
+                                let spacing: CGFloat = 16
+                                let horizontalPadding: CGFloat = 16
+                                let available = proxy.size.width - (horizontalPadding * 2) - (spacing * (count - 1))
+                                let computedSize = available / count
+                                let markerSize = min(40, max(26, computedSize))
+                                let needsScroll = computedSize < 30
+
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: spacing) {
+                                        ForEach(CircleResult.allCases, id: \.self) { result in
+                                            VStack(spacing: 6) {
+                                                CircleResultPreview(
+                                                    appearance: settings.appearance(for: result),
+                                                    showSymbol: settings.showSymbolsOnPitch,
+                                                    size: markerSize
+                                                )
+                                                
+                                                Text(shortName(for: result))
+                                                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                                    .foregroundStyle(.primary.opacity(0.8))
+                                                    .lineLimit(1)
+                                                    .minimumScaleFactor(0.7)
+                                            }
+                                            .frame(width: markerSize + 6)
+                                        }
                                     }
+                                    .padding(.horizontal, horizontalPadding)
+                                    .frame(maxWidth: needsScroll ? .infinity : nil, alignment: .center)
                                 }
                             }
+                            .padding(.vertical, 8)
                         }
                         .scaleEffect(resetFlash ? 1.02 : 1.0)
                         

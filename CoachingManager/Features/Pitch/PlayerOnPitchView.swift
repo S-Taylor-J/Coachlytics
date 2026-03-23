@@ -14,6 +14,7 @@ struct PlayerOnPitchView: View {
     let quarterPlayPercentage: Double // 0.0 to 1.0
     let playTime: TimeInterval // Time played in seconds
     var isCompact: Bool = false // True for iPhone, false for iPad
+    var showTimer: Bool = true
     var onRemove: (() -> Void)? = nil
     var onTap: (() -> Void)? = nil
     
@@ -171,13 +172,15 @@ struct PlayerOnPitchView: View {
                     .foregroundColor(.white)
                 
                 // Time display
-                HStack(spacing: 2) {
-                    Image(systemName: "clock.fill")
-                        .font(.system(size: isCompact ? 6 : 8))
-                    Text(formattedPlayTime)
-                        .font(.system(size: isCompact ? 7 : 9, weight: .medium, design: .monospaced))
+                if showTimer {
+                    HStack(spacing: 2) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: isCompact ? 6 : 8))
+                        Text(formattedPlayTime)
+                            .font(.system(size: isCompact ? 7 : 9, weight: .medium, design: .monospaced))
+                    }
+                    .foregroundColor(.white.opacity(0.85))
                 }
-                .foregroundColor(.white.opacity(0.85))
             }
             .padding(.horizontal, isCompact ? 4 : 8)
             .padding(.vertical, isCompact ? 3 : 4)

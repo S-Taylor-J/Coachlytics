@@ -208,7 +208,7 @@ struct CreateTeamSheet: View {
                 tipRow(
                     icon: "1.circle.fill",
                     title: "Create your team",
-                    description: "Give your team a name and pick a color",
+                    description: "Give your team a name",
                     iconColor: .blue
                 )
                 

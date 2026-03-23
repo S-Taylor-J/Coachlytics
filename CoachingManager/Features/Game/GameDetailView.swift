@@ -40,7 +40,7 @@ struct GameDetailView: View {
     // Game settings for form behavior
     @State private var gameSettings = GameSettings()
     
-    // Event highlighting state
+    // Event highlighting and repositioning state
     @State private var highlightedEventId: UUID? = nil
     
     // Recent events display format
@@ -48,14 +48,18 @@ struct GameDetailView: View {
     
     // Edit game sheet
     @State private var showEditGameSheet = false
+
+    private let pitchAspectRatio: CGFloat = 2.0/3.0
+    private let recentEventsMaxRows: CGFloat = 10
     
     // Pitch dimensions - computed properties to avoid deprecated UIScreen.main warning
     private var pitchWidth: CGFloat {
-        (UIScreen.main.bounds.width) * 0.85
+        (UIScreen.main.bounds.width) * 0.94
     }
     
     private var pitchHeight: CGFloat {
-        (UIScreen.main.bounds.height) * 0.45
+        let maxHeight = (UIScreen.main.bounds.height) * 0.80
+        return min(maxHeight, pitchWidth / pitchAspectRatio)
     }
     
     // Players from my team only
@@ -107,6 +111,14 @@ struct GameDetailView: View {
             events = events.filter { $0.circleResult == circleResult }
         }
         return events
+    }
+
+    private var sortedRecentEvents: [GameEvent] {
+        filteredEvents.sorted { eventSortKey($0) > eventSortKey($1) }
+    }
+
+    private var recentEventsListMaxHeight: CGFloat {
+        recentEventsMaxRows * 68
     }
     
     // Subtitle for recent events based on current filters
@@ -256,6 +268,7 @@ struct GameDetailView: View {
             )
         }
         .onAppear {
+            PlayerTimeService.shared.track(game: game)
             // Load game settings
             if let settingsString = UserDefaults.standard.string(forKey: "gameSettingsData"),
                let data = settingsString.data(using: .utf8),
@@ -440,6 +453,10 @@ struct GameDetailView: View {
             return "Soon"
         }
     }
+
+    private func eventSortKey(_ event: GameEvent) -> TimeInterval {
+        event.gameClockTime ?? event.timestamp.timeIntervalSinceReferenceDate
+    }
     
     // Quick stats view for selected quarter
     private func quarterQuickStats(for quarter: Int) -> some View {
@@ -462,75 +479,110 @@ struct GameDetailView: View {
     private var pitchCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "sportscourt.fill")
+                Image(systemName: highlightedEventId != nil ? "arrow.up.and.down.and.arrow.left.and.right" : "sportscourt.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(
-                        LinearGradient(colors: [.green, .mint], startPoint: .leading, endPoint: .trailing)
+                        LinearGradient(
+                            colors: highlightedEventId != nil ? [.blue, .purple] : [.green, .mint],
+                            startPoint: .leading, endPoint: .trailing
+                        )
                     )
-                Text("Tap to Record Event")
+                    .animation(.easeInOut(duration: 0.2), value: highlightedEventId != nil)
+                Text(highlightedEventId != nil ? "Use arrows to reposition" : "Tap to Record Event")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .animation(.easeInOut(duration: 0.2), value: highlightedEventId != nil)
                 Spacer()
                 
-                Text("\(filteredEvents.count) events")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                if highlightedEventId != nil {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { highlightedEventId = nil }
+                    } label: {
+                        Text("Done")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(Color.blue.opacity(0.12)))
+                    }
+                } else {
+                    Text("\(filteredEvents.count) events")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
             }
+            .padding(.horizontal, 16)
             
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(red: 0.18, green: 0.52, blue: 0.22))
-                
-                HockeyPitch()
-                    .fill(Color.clear)
-                    .overlay(HockeyPitch().stroke(Color.white.opacity(0.3), lineWidth: 2))
-                
-                PitchMarkings()
-                    .stroke(Color.white.opacity(0.6), lineWidth: 1.5)
-                
-                ForEach(filteredEvents) { event in
-                    EventMarkerView(
-                        event: event,
-                        isHighlighted: highlightedEventId == event.id,
-                        isFaded: highlightedEventId != nil && highlightedEventId != event.id
-                    )
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            if highlightedEventId == event.id {
-                                highlightedEventId = nil
-                            } else {
-                                highlightedEventId = event.id
-                            }
-                        }
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+            GeometryReader { geo in
+                let pitchSize = geo.size
+                ZStack {
+                    PitchBackgroundImageView()
+                    
+                    ForEach(filteredEvents) { event in
+                        let isHighlighted = highlightedEventId == event.id
+                        EventMarkerView(
+                            event: event,
+                            isHighlighted: isHighlighted,
+                            isFaded: highlightedEventId != nil && !isHighlighted
+                        )
+                        .allowsHitTesting(isHighlighted) // only the selected marker is draggable
+                        .gesture(
+                            isHighlighted ? DragGesture(minimumDistance: 1)
+                                .onChanged { value in
+                                    guard let index = game.events.firstIndex(where: { $0.id == event.id }) else { return }
+                                    let newX = min(max(value.location.x, 0), pitchSize.width)
+                                    let newY = min(max(value.location.y, 0), pitchSize.height)
+                                    game.events[index].location = CGPoint(x: newX, y: newY)
+                                }
+                                .onEnded { _ in
+                                    saveGameState()
+                                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                                    generator.impactOccurred()
+                                }
+                            : nil
+                        )
+                    }
+                    
+                    // Decorative arrows hint when an event is selected
+                    if let id = highlightedEventId,
+                       let event = game.events.first(where: { $0.id == id }) {
+                        MarkerMoveControls(
+                            position: event.location,
+                            pitchSize: pitchSize
+                        )
+                    }
+                    
+                    if (filterTeam != nil || filterEventType != nil || filterCircleResult != nil) && !filteredEvents.isEmpty {
+                        HeatmapOverlay(events: filteredEvents, pitchSize: pitchSize)
+                            .opacity(0.25)
+                            .allowsHitTesting(false)
                     }
                 }
-                
-                if (filterTeam != nil || filterEventType != nil || filterCircleResult != nil) && !filteredEvents.isEmpty {
-                    HeatmapOverlay(events: filteredEvents, pitchSize: CGSize(width: pitchWidth, height: pitchHeight))
-                        .opacity(0.25)
+                .frame(width: pitchSize.width, height: pitchSize.height)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .contentShape(Rectangle())
+                .onTapGesture { location in
+                    guard !game.isCompleted else { return }
+                    if highlightedEventId != nil {
+                        withAnimation(.easeInOut(duration: 0.2)) { highlightedEventId = nil }
+                        return
+                    }
+                    selectedLocation = location
+                    currentStep = 0
+                    showEventForm = true
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
                 }
+                .opacity(game.isCompleted ? 0.7 : 1.0)
             }
-            .frame(height: pitchHeight)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .contentShape(Rectangle())
-            .onTapGesture { location in
-                guard !game.isCompleted else { return }
-                selectedLocation = location
-                currentStep = 0
-                showEventForm = true
-                
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
-            }
-            .opacity(game.isCompleted ? 0.7 : 1.0)
+            .aspectRatio(pitchAspectRatio, contentMode: .fit)
         }
-        .padding(16)
+        .padding(.top, 16)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(.systemBackground))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
     // MARK: - Analytics Section
@@ -704,37 +756,42 @@ struct GameDetailView: View {
             } else {
                 if showEventsAsList {
                     // List view format
-                    VStack(spacing: 8) {
-                        ForEach(filteredEvents.sorted(by: { $0.timestamp > $1.timestamp }).prefix(10)) { event in
-                            EventListRowView(
-                                event: event,
-                                players: myTeamPlayers,
-                                isHighlighted: highlightedEventId == event.id,
-                                isFaded: highlightedEventId != nil && highlightedEventId != event.id
-                            )
-                            .onTapGesture {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    if highlightedEventId == event.id {
-                                        highlightedEventId = nil
-                                    } else {
-                                        highlightedEventId = event.id
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(sortedRecentEvents) { event in
+                                EventListRowView(
+                                    event: event,
+                                    players: myTeamPlayers,
+                                    isHighlighted: highlightedEventId == event.id,
+                                    isFaded: highlightedEventId != nil && highlightedEventId != event.id,
+                                    onDelete: { deleteEvent(event) }
+                                )
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        if highlightedEventId == event.id {
+                                            highlightedEventId = nil
+                                        } else {
+                                            highlightedEventId = event.id
+                                        }
                                     }
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.impactOccurred()
                                 }
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.impactOccurred()
                             }
                         }
                     }
+                    .frame(maxHeight: recentEventsListMaxHeight)
                 } else {
                     // Card view format (horizontal scroll)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            ForEach(filteredEvents.sorted(by: { $0.timestamp > $1.timestamp }).prefix(10)) { event in
+                            ForEach(sortedRecentEvents) { event in
                                 EventCardView(
                                     event: event,
                                     players: myTeamPlayers,
                                     isHighlighted: highlightedEventId == event.id,
-                                    isFaded: highlightedEventId != nil && highlightedEventId != event.id
+                                    isFaded: highlightedEventId != nil && highlightedEventId != event.id,
+                                    onDelete: { deleteEvent(event) }
                                 )
                                 .onTapGesture {
                                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -787,7 +844,7 @@ struct GameDetailView: View {
         }
         
         let newEvent = GameEvent(
-            location: selectedLocation,
+            gameClockTime: gameTimer.elapsedTime, location: selectedLocation,
             eventType: selectedEventType,
             team: selectedTeam,
             playerId: shouldRecordPlayer ? selectedPlayerId : nil,
@@ -895,6 +952,23 @@ struct GameDetailView: View {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.warning)
     }
+    
+    private func deleteEvent(_ event: GameEvent) {
+        // Reverse score if it was a goal
+        if event.eventType == .goal || (event.eventType == .circleEntry && event.circleResult == .goal) {
+            if event.team == .ourTeam {
+                game.myTeamScore = max(0, game.myTeamScore - 1)
+            } else {
+                game.opponentScore = max(0, game.opponentScore - 1)
+            }
+        }
+        game.events.removeAll { $0.id == event.id }
+        if highlightedEventId == event.id { highlightedEventId = nil }
+        saveGameState()
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.warning)
+    }
+    
 }
 
 // MARK: - Game Clock Card 2
@@ -1539,6 +1613,7 @@ struct EventCardView: View {
     let players: [Player]
     var isHighlighted: Bool = false
     var isFaded: Bool = false
+    var onDelete: (() -> Void)? = nil
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -1547,6 +1622,13 @@ struct EventCardView: View {
         formatter.timeStyle = .short
         return formatter
     }()
+
+    private var eventTimeText: String {
+        if let gameClockTime = event.gameClockTime {
+            return gameClockTime.formattedDuration
+        }
+        return dateFormatter.string(from: event.timestamp)
+    }
     
     private var playerName: String {
         if let playerId = event.playerId,
@@ -1605,7 +1687,7 @@ struct EventCardView: View {
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundColor(.primary)
                     
-                    Text(dateFormatter.string(from: event.timestamp))
+                    Text(eventTimeText)
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
                         .foregroundColor(.secondary)
                 }
@@ -1686,7 +1768,31 @@ struct EventCardView: View {
             }
         }
         .padding(12)
-        .frame(width: 175, height: 140)
+        .frame(width: 175, height: isHighlighted ? 166 : 140)
+        .overlay(alignment: .bottom) {
+            if isHighlighted, let onDelete = onDelete {
+                Button(role: .destructive, action: onDelete) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("Delete")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.red)
+                    )
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 10)
+                }
+                .buttonStyle(.plain)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isHighlighted)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color(.systemBackground))
@@ -1721,6 +1827,7 @@ struct EventListRowView: View {
     let players: [Player]
     var isHighlighted: Bool = false
     var isFaded: Bool = false
+    var onDelete: (() -> Void)? = nil
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -1729,6 +1836,13 @@ struct EventListRowView: View {
         formatter.timeStyle = .short
         return formatter
     }()
+
+    private var eventTimeText: String {
+        if let gameClockTime = event.gameClockTime {
+            return gameClockTime.formattedDuration
+        }
+        return dateFormatter.string(from: event.timestamp)
+    }
     
     private var playerName: String {
         if let playerId = event.playerId,
@@ -1835,27 +1949,42 @@ struct EventListRowView: View {
             
             Spacer()
             
-            // Time and quarter
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(dateFormatter.string(from: event.timestamp))
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary)
-                Text("Q\(event.quarter)")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.blue, .cyan],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+            // Time, quarter, and (when highlighted) delete button
+            HStack(spacing: 8) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(eventTimeText)
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(.secondary)
+                    Text("Q\(event.quarter)")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.blue, .cyan],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                                 )
-                            )
-                    )
+                        )
+                }
+                
+                if isHighlighted, let onDelete = onDelete {
+                    Button(role: .destructive, action: onDelete) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(Color.red))
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                }
             }
+            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isHighlighted)
         }
         .padding(10)
         .background(
@@ -1875,6 +2004,52 @@ struct EventListRowView: View {
         )
         .opacity(isFaded ? 0.4 : 1.0)
         .scaleEffect(isHighlighted ? 1.02 : 1.0)
+    }
+}
+
+// MARK: - Marker Move Controls
+struct MarkerMoveControls: View {
+    let position: CGPoint
+    let pitchSize: CGSize
+    
+    private let arrowSize: CGFloat = 22
+    private let arrowPad: CGFloat = 36
+    
+    var body: some View {
+        ZStack {
+            // Subtle backdrop
+            Circle()
+                .fill(Color.black.opacity(0.08))
+                .frame(width: arrowPad * 2 + arrowSize, height: arrowPad * 2 + arrowSize)
+                .position(position)
+            
+            // Up
+            arrowIcon(angle: 0)
+                .position(x: position.x, y: max(position.y - arrowPad, arrowSize / 2))
+            
+            // Down
+            arrowIcon(angle: 180)
+                .position(x: position.x, y: min(position.y + arrowPad, pitchSize.height - arrowSize / 2))
+            
+            // Left
+            arrowIcon(angle: -90)
+                .position(x: max(position.x - arrowPad, arrowSize / 2), y: position.y)
+            
+            // Right
+            arrowIcon(angle: 90)
+                .position(x: min(position.x + arrowPad, pitchSize.width - arrowSize / 2), y: position.y)
+        }
+        .allowsHitTesting(false)
+        .transition(.opacity.combined(with: .scale(scale: 0.85)))
+    }
+    
+    private func arrowIcon(angle: Double) -> some View {
+        Image(systemName: "triangle.fill")
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundColor(.white.opacity(0.95))
+            .rotationEffect(.degrees(angle))
+            .frame(width: arrowSize, height: arrowSize)
+            .shadow(color: Color.black.opacity(0.18), radius: 2, x: 0, y: 1)
     }
 }
 

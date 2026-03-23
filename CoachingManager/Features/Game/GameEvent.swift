@@ -12,7 +12,8 @@ import Combine
 struct GameEvent: Identifiable, Codable {
     let id: UUID
     let timestamp: Date
-    let location: CGPoint
+    let gameClockTime: TimeInterval?
+    var location: CGPoint
     let eventType: EventType
     let team: TeamType
     let playerId: UUID?
@@ -24,6 +25,7 @@ struct GameEvent: Identifiable, Codable {
     
     init(id: UUID = UUID(),
          timestamp: Date = Date(),
+         gameClockTime: TimeInterval? = nil,
          location: CGPoint,
          eventType: EventType,
          team: TeamType,
@@ -35,6 +37,7 @@ struct GameEvent: Identifiable, Codable {
          quarter: Int = 1) {
         self.id = id
         self.timestamp = timestamp
+        self.gameClockTime = gameClockTime
         self.location = location
         self.eventType = eventType
         self.team = team
