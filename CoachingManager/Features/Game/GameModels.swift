@@ -22,6 +22,35 @@ enum TeamType: String, CaseIterable, Codable {
     case otherTeam = "Opponent"
 }
 
+// MARK: - Team Color Settings
+struct TeamColorSettings {
+    static let ourTeamColorKey = "ourTeamColorHex"
+    static let opponentTeamColorKey = "opponentTeamColorHex"
+    static let defaultOurTeamHex = "#FF3B30"
+    static let defaultOpponentHex = "#007AFF"
+    
+    static func color(from hex: String, fallback: Color) -> Color {
+        Color(hex: hex) ?? fallback
+    }
+    
+    static func color(for team: TeamType, ourHex: String, opponentHex: String) -> Color {
+        switch team {
+        case .ourTeam:
+            return color(from: ourHex, fallback: .red)
+        case .otherTeam:
+            return color(from: opponentHex, fallback: .blue)
+        }
+    }
+    
+    static func color(for team: TeamType?) -> Color {
+        guard let team = team else { return .gray }
+        let defaults = UserDefaults.standard
+        let ourHex = defaults.string(forKey: ourTeamColorKey) ?? defaultOurTeamHex
+        let opponentHex = defaults.string(forKey: opponentTeamColorKey) ?? defaultOpponentHex
+        return color(for: team, ourHex: ourHex, opponentHex: opponentHex)
+    }
+}
+
 // MARK: - Infraction Type Enum
 enum InfractionType: String, CaseIterable, Codable {
     case minor = "Minor"

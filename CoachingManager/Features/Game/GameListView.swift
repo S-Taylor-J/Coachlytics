@@ -442,15 +442,14 @@ struct GameListView: View {
                     emptyStateCard
                 }
             } else {
-                List {
+                LazyVStack(spacing: 12) {
                     ForEach(filteredCompletedGames) { game in
                         Button {
                             selectedGame = game
                         } label: {
                             GameHistoryRow(game: game)
                         }
-                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                        .listRowSeparator(.hidden)
+                        .buttonStyle(.plain)
                         .contextMenu {
                             Button(role: .destructive) {
                                 gameToDelete = game
@@ -460,16 +459,9 @@ struct GameListView: View {
                             }
                         }
                     }
-                    .onDelete { offsets in
-                        offsetsToDelete = offsets
-                        showDeleteAlert = true
-                    }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .contentMargins(.top, 8, for: .scrollContent)
-                .contentMargins(.bottom, 100, for: .scrollContent)
-                .frame(minHeight: CGFloat(filteredCompletedGames.count) * 78 + 108)
+                .padding(.top, 4)
+                .padding(.bottom, 100)
             }
         }
         .alert("Delete Game", isPresented: $showDeleteAlert) {
@@ -789,22 +781,39 @@ struct ScheduledGameCard: View {
 // MARK: - Game History Row
 struct GameHistoryRow: View {
     let game: Game
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        HStack(spacing: 16) {
-            // Date badge
-            VStack(spacing: 2) {
+        HStack(spacing: 14) {
+            VStack(spacing: 6) {
                 Text(game.shortDate)
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color(.systemGray5))
+                    )
+                
+                Text(game.resultString)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(game.resultColor)
+                    )
             }
-            .frame(width: 50)
             
-            // Teams
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(game.myTeamName) vs \(game.opponentName)")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+            VStack(alignment: .leading, spacing: 6) {
+                Text(game.myTeamName)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundColor(.primary)
+                Text("vs \(game.opponentName)")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(.secondary)
                 
                 if !game.location.isEmpty {
                     HStack(spacing: 4) {
@@ -819,19 +828,30 @@ struct GameHistoryRow: View {
             
             Spacer()
             
-            // Score
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: 6) {
                 Text(game.scoreString)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                 
-                Text(game.resultString)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(game.resultColor)
+                HStack(spacing: 4) {
+                    Text("Final")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundColor(.secondary)
             }
-            .padding(.trailing, 8)
         }
-        .padding(.vertical, 4)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.08), radius: 8, x: 0, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color(.systemGray5), lineWidth: 1)
+        )
     }
 }
 

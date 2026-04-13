@@ -15,6 +15,8 @@ struct FilterView: View {
     @Binding var selectedCircleResult: CircleResult?
     
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
+    @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
     
     private var hasActiveFilters: Bool {
         selectedTeam != nil || selectedEventType != nil || selectedCircleResult != nil
@@ -172,11 +174,8 @@ struct FilterView: View {
     }
     
     private var teamColor: Color {
-        switch selectedTeam {
-        case .ourTeam: return .red
-        case .otherTeam: return .blue
-        case nil: return .gray
-        }
+        guard let team = selectedTeam else { return .gray }
+        return TeamColorSettings.color(for: team, ourHex: ourTeamColorHex, opponentHex: opponentTeamColorHex)
     }
     
     private var eventIcon: String {

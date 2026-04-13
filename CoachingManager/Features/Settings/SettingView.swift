@@ -14,7 +14,9 @@ struct SettingsView: View {
     @AppStorage("requiredSkills") private var requiredSkills: String = ""
     @AppStorage("gameSettingsData") private var gameSettingsData: String = ""
     @AppStorage("defaultTeamId") private var defaultTeamId: String = ""
-    @AppStorage("showPlayerTimers") private var showPlayerTimers = false
+    @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
+    @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
+    // @AppStorage("showPlayerTimers") private var showPlayerTimers = false
     
     @Query(sort: \Team.name) private var teams: [Team]
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
@@ -38,6 +40,21 @@ struct SettingsView: View {
     @State private var newCustomPosition = ""
     @State private var showAddSkillAlert = false
     @State private var showAddPositionAlert = false
+    @State private var showResetConfirmation = false
+    
+    private var ourTeamColorBinding: Binding<Color> {
+        Binding(
+            get: { TeamColorSettings.color(from: ourTeamColorHex, fallback: .red) },
+            set: { ourTeamColorHex = $0.toHex() }
+        )
+    }
+    
+    private var opponentTeamColorBinding: Binding<Color> {
+        Binding(
+            get: { TeamColorSettings.color(from: opponentTeamColorHex, fallback: .blue) },
+            set: { opponentTeamColorHex = $0.toHex() }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -57,6 +74,7 @@ struct SettingsView: View {
                 } footer: {
                     Text("Set your default team and minimum players required on the pitch.")
                 }
+                
                 
                 // MARK: - Skills & Positions Management
                 Section {
@@ -139,14 +157,14 @@ struct SettingsView: View {
                     Text(enableSkillFilter ? "Only players with selected skills will be available for the pitch." : "All players will be available regardless of skills.")
                 }
 
-                // MARK: - Pitch Display
-                Section {
-                    Toggle("Show Player Timers", isOn: $showPlayerTimers)
-                } header: {
-                    Label("Pitch Display", systemImage: "clock")
-                } footer: {
-                    Text("Toggle timer badges under players on the pitch and bench.")
-                }
+                // MARK: - Pitch Display //TODO need to fix player timer
+                // Section {
+                //     Toggle("Show Player Timers", isOn: $showPlayerTimers)
+                // } header: {
+                //     Label("Pitch Display", systemImage: "clock")
+                // } footer: {
+                //     Text("Toggle timer badges under players on the pitch and bench.")
+                // }
                 
                 // MARK: - Event Recording Settings
                 Section {
@@ -203,6 +221,16 @@ struct SettingsView: View {
                     Text("Customize how event markers appear on the pitch.")
                 }
 
+                // MARK: - Team Colors
+                Section {
+                    ColorPicker("Our Team", selection: ourTeamColorBinding, supportsOpacity: false)
+                    ColorPicker("Opponent", selection: opponentTeamColorBinding, supportsOpacity: false)
+                } header: {
+                    Label("Team Colors", systemImage: "paintpalette.fill")
+                } footer: {
+                    Text("Customize the colors used for team highlights in game view.")
+                }
+
                 // MARK: - Save & Reset
                 Section {
                     Button {
@@ -217,11 +245,12 @@ struct SettingsView: View {
                     .disabled(!settingsChanged())
                     
                     Button(role: .destructive) {
-                        resetToDefaults()
+                        showResetConfirmation = true
                     } label: {
                         HStack {
                             Spacer()
                             Label("Reset All to Defaults", systemImage: "arrow.counterclockwise")
+                                .foregroundStyle(.red)
                             Spacer()
                         }
                     }
@@ -230,6 +259,14 @@ struct SettingsView: View {
             .contentMargins(.bottom, 100, for: .scrollContent)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("Reset All Settings?", isPresented: $showResetConfirmation) {
+                Button("Reset", role: .destructive) {
+                    resetToDefaults()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will restore all settings and custom options to their defaults.")
+            }
             .onAppear {
                 loadSettings()
                 loadSelectedSkills()
@@ -280,6 +317,8 @@ struct SettingsView: View {
         selectedSkills = []
         requiredSkills = ""
         defaultTeamId = ""
+        ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
+        opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
         gameSettings = GameSettings() // Reset to default game settings
         circleResultSettings = CircleResultSettings() // Reset circle result settings
         circleResultSettings.saveToDefaults()
@@ -751,6 +790,7 @@ struct CircleResultAppearanceView: View {
     
     @State private var showResetConfirmation = false
     @State private var resetFlash = false
+    @State private var editingResult: CircleResult? = nil
     
     // Available symbols for accessibility
     private let availableSymbols = [
@@ -760,25 +800,50 @@ struct CircleResultAppearanceView: View {
         "bolt.fill", "target", "scope", "exclamationmark.triangle.fill"
     ]
     
-    // Predefined color palette
-    private let colorPalette: [(name: String, hex: String)] = [
-        ("Green", "#34C759"),
-        ("Orange", "#FF9500"),
-        ("Blue", "#007AFF"),
-        ("Purple", "#AF52DE"),
-        ("Red", "#FF3B30"),
-        ("Indigo", "#5856D6"),
-        ("Gray", "#8E8E93"),
-        ("Teal", "#5AC8FA"),
-        ("Pink", "#FF2D55"),
-        ("Yellow", "#FFCC00"),
-        ("Mint", "#00C7BE"),
-        ("Cyan", "#32ADE6")
-    ]
-    
     var body: some View {
         ScrollViewReader { proxy in
             List {
+                // Preview section
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Label("Preview", systemImage: "eye.fill")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            Spacer()
+                            if resetFlash {
+                                Label("Reset!", systemImage: "checkmark.circle.fill")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.green)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
+                        }
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(CircleResult.allCases, id: \.self) { result in
+                                    VStack(spacing: 6) {
+                                        CircleResultPreview(
+                                            appearance: settings.appearance(for: result),
+                                            showSymbol: settings.showSymbolsOnPitch,
+                                            size: 36
+                                        )
+                                        Text(shortName(for: result))
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .frame(width: 52)
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                        }
+                        Text("Changes update the game pitch markers and event lists.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                .id("previewSection")
                 // Accessibility info section
 //            Section {
 //                HStack(spacing: 12) {
@@ -798,96 +863,96 @@ struct CircleResultAppearanceView: View {
 //            }
             
                 // Preview section
-                Section {
-                    VStack(spacing: 20) {
-                        HStack {
-                            Label("Preview", systemImage: "eye.fill")
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Spacer()
+                // Section {
+                //     VStack(spacing: 20) {
+                //         HStack {
+                //             Label("Preview", systemImage: "eye.fill")
+                //                 .font(.headline)
+                //                 .foregroundStyle(.primary)
+                //             Spacer()
                             
-                            // Reset success indicator
-                            if resetFlash {
-                                Label("Reset!", systemImage: "checkmark.circle.fill")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.green)
-                                    .transition(.scale.combined(with: .opacity))
-                            }
-                        }
+                //             // Reset success indicator
+                //             if resetFlash {
+                //                 Label("Reset!", systemImage: "checkmark.circle.fill")
+                //                     .font(.caption)
+                //                     .fontWeight(.semibold)
+                //                     .foregroundStyle(.green)
+                //                     .transition(.scale.combined(with: .opacity))
+                //             }
+                //         }
                         
-                        // Pitch-style preview card
-                        ZStack {
-                            // Pitch background
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.green.opacity(0.3), Color.green.opacity(0.15)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                                .frame(height: 120)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(resetFlash ? Color.green : Color.green.opacity(0.3), lineWidth: resetFlash ? 2 : 1)
-                                )
+                //         // Pitch-style preview card
+                //         ZStack {
+                //             // Pitch background
+                //             RoundedRectangle(cornerRadius: 16, style: .continuous)
+                //                 .fill(
+                //                     LinearGradient(
+                //                         colors: [Color.green.opacity(0.3), Color.green.opacity(0.15)],
+                //                         startPoint: .top,
+                //                         endPoint: .bottom
+                //                     )
+                //                 )
+                //                 .frame(height: 120)
+                //                 .overlay(
+                //                     RoundedRectangle(cornerRadius: 16, style: .continuous)
+                //                         .stroke(resetFlash ? Color.green : Color.green.opacity(0.3), lineWidth: resetFlash ? 2 : 1)
+                //                 )
                             
-                            GeometryReader { proxy in
-                                let count = CGFloat(CircleResult.allCases.count)
-                                let spacing: CGFloat = 16
-                                let horizontalPadding: CGFloat = 16
-                                let available = proxy.size.width - (horizontalPadding * 2) - (spacing * (count - 1))
-                                let computedSize = available / count
-                                let markerSize = min(40, max(26, computedSize))
-                                let needsScroll = computedSize < 30
+                //             GeometryReader { proxy in
+                //                 let count = CGFloat(CircleResult.allCases.count)
+                //                 let spacing: CGFloat = 16
+                //                 let horizontalPadding: CGFloat = 16
+                //                 let available = proxy.size.width - (horizontalPadding * 2) - (spacing * (count - 1))
+                //                 let computedSize = available / count
+                //                 let markerSize = min(40, max(26, computedSize))
+                //                 let needsScroll = computedSize < 30
 
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: spacing) {
-                                        ForEach(CircleResult.allCases, id: \.self) { result in
-                                            VStack(spacing: 6) {
-                                                CircleResultPreview(
-                                                    appearance: settings.appearance(for: result),
-                                                    showSymbol: settings.showSymbolsOnPitch,
-                                                    size: markerSize
-                                                )
+                //                 ScrollView(.horizontal, showsIndicators: false) {
+                //                     HStack(spacing: spacing) {
+                //                         ForEach(CircleResult.allCases, id: \.self) { result in
+                //                             VStack(spacing: 6) {
+                //                                 CircleResultPreview(
+                //                                     appearance: settings.appearance(for: result),
+                //                                     showSymbol: settings.showSymbolsOnPitch,
+                //                                     size: markerSize
+                //                                 )
                                                 
-                                                Text(shortName(for: result))
-                                                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-                                                    .foregroundStyle(.primary.opacity(0.8))
-                                                    .lineLimit(1)
-                                                    .minimumScaleFactor(0.7)
-                                            }
-                                            .frame(width: markerSize + 6)
-                                        }
-                                    }
-                                    .padding(.horizontal, horizontalPadding)
-                                    .frame(maxWidth: needsScroll ? .infinity : nil, alignment: .center)
-                                }
-                            }
-                            .padding(.vertical, 8)
-                        }
-                        .scaleEffect(resetFlash ? 1.02 : 1.0)
+                //                                 Text(shortName(for: result))
+                //                                     .font(.system(size: 10, weight: .semibold, design: .rounded))
+                //                                     .foregroundStyle(.primary.opacity(0.8))
+                //                                     .lineLimit(1)
+                //                                     .minimumScaleFactor(0.7)
+                //                             }
+                //                             .frame(width: markerSize + 6)
+                //                         }
+                //                     }
+                //                     .padding(.horizontal, horizontalPadding)
+                //                     .frame(maxWidth: needsScroll ? .infinity : nil, alignment: .center)
+                //                 }
+                //             }
+                //             .padding(.vertical, 8)
+                //         }
+                //         .scaleEffect(resetFlash ? 1.02 : 1.0)
                         
-                        // Legend
-                        Text("Markers will appear on the pitch during gameplay")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                    .padding(.vertical, 12)
-                }
-                .id("previewSection")
+                //         // Legend
+                //         Text("Markers will appear on the pitch during gameplay")
+                //             .font(.caption)
+                //             .foregroundStyle(.secondary)
+                //             .frame(maxWidth: .infinity, alignment: .center)
+                //     }
+                //     .padding(.vertical, 12)
+                // }
+                // .id("previewSection")
             
                 // Individual outcome settings
                 ForEach(CircleResult.allCases, id: \.self) { result in
                     Section {
-                        OutcomeSettingRow(
+                        OutcomePreviewRow(
                             result: result,
-                            appearance: bindingForResult(result),
-                            colorPalette: colorPalette,
-                            availableSymbols: availableSymbols
-                        )
+                            appearance: settings.appearance(for: result)
+                        ) {
+                            editingResult = result
+                        }
                 } header: {
                     Text(result.rawValue)
                 }
@@ -942,6 +1007,13 @@ struct CircleResultAppearanceView: View {
         }
         .navigationTitle("Outcome Colors")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $editingResult) { result in
+            OutcomeEditSheet(
+                result: result,
+                appearance: bindingForResult(result),
+                availableSymbols: availableSymbols
+            )
+        }
     }
     
     private func shortName(for result: CircleResult) -> String {
@@ -976,6 +1048,10 @@ struct CircleResultAppearanceView: View {
     }
 }
 
+extension CircleResult: Identifiable {
+    var id: String { rawValue }
+}
+
 // MARK: - Circle Result Preview
 struct CircleResultPreview: View {
     let appearance: CircleResultAppearance
@@ -1008,125 +1084,164 @@ struct CircleResultPreview: View {
 }
 
 // MARK: - Outcome Setting Row
-struct OutcomeSettingRow: View {
+struct OutcomePreviewRow: View {
     let result: CircleResult
-    @Binding var appearance: CircleResultAppearance
-    let colorPalette: [(name: String, hex: String)]
-    let availableSymbols: [String]
+    let appearance: CircleResultAppearance
+    let onEdit: () -> Void
     
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        VStack(spacing: 20) {
-            // Live Preview Card
-            HStack(spacing: 16) {
-                CircleResultPreview(appearance: appearance, showSymbol: true, size: 56)
-                
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Live Preview")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                    
+        HStack(spacing: 12) {
+            CircleResultPreview(appearance: appearance, showSymbol: true, size: 44)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Preview")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                HStack(spacing: 10) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(appearance.color)
+                            .frame(width: 10, height: 10)
+                        Text(appearance.colorHex.uppercased())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: appearance.symbol)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        Text(symbolName(for: appearance.symbol))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Spacer()
+            Button("Edit") {
+                onEdit()
+            }
+            .font(.subheadline)
+            .fontWeight(.semibold)
+            .buttonStyle(.bordered)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(colorScheme == .dark ? Color(.systemGray6) : Color(.systemGray6).opacity(0.5))
+        )
+    }
+    
+    private func symbolName(for symbol: String) -> String {
+        symbol.replacingOccurrences(of: ".fill", with: "")
+            .replacingOccurrences(of: ".", with: " ")
+            .capitalized
+    }
+}
+
+// MARK: - Outcome Edit Sheet
+struct OutcomeEditSheet: View {
+    let result: CircleResult
+    @Binding var appearance: CircleResultAppearance
+    let availableSymbols: [String]
+    
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var colorBinding: Binding<Color> {
+        Binding(
+            get: { Color(hex: appearance.colorHex) ?? .gray },
+            set: { appearance.colorHex = $0.toHex() }
+        )
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
                     HStack(spacing: 12) {
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(appearance.color)
-                                .frame(width: 12, height: 12)
-                            Text(colorName(for: appearance.colorHex))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        CircleResultPreview(appearance: appearance, showSymbol: true, size: 56)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(result.rawValue)
+                                .font(.headline)
+                            HStack(spacing: 10) {
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(appearance.color)
+                                        .frame(width: 10, height: 10)
+                                    Text(appearance.colorHex.uppercased())
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                HStack(spacing: 6) {
+                                    Image(systemName: appearance.symbol)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+                                    Text(symbolName(for: appearance.symbol))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
-                        
-                        HStack(spacing: 6) {
-                            Image(systemName: appearance.symbol)
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
-                            Text(symbolName(for: appearance.symbol))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(colorScheme == .dark ? Color(.systemGray6) : Color(.systemGray6).opacity(0.5))
+                    )
+                    
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Label("Color", systemImage: "paintpalette.fill")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Spacer()
+                            ColorPicker("", selection: colorBinding, supportsOpacity: false)
+                                .labelsHidden()
                         }
                     }
-                }
-                
-                Spacer()
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(colorScheme == .dark ? Color(.systemGray6) : Color(.systemGray6).opacity(0.5))
-            )
-            
-            // Color Selection
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label("Color", systemImage: "paintpalette.fill")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.primary)
                     
-                    Spacer()
-                }
-                
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 6), spacing: 10) {
-                    ForEach(colorPalette, id: \.hex) { color in
-                        ColorSelectionButton(
-                            color: Color(hex: color.hex) ?? .gray,
-                            isSelected: appearance.colorHex == color.hex,
-                            colorName: color.name
-                        ) {
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                                appearance.colorHex = color.hex
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Label("Icon", systemImage: "star.circle.fill")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Spacer()
+                            Text("For accessibility")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Capsule().fill(Color(.systemGray5)))
+                        }
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 8) {
+                            ForEach(availableSymbols, id: \.self) { symbol in
+                                SymbolSelectionButton(
+                                    symbol: symbol,
+                                    isSelected: appearance.symbol == symbol,
+                                    accentColor: appearance.color
+                                ) {
+                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                                        appearance.symbol = symbol
+                                    }
+                                }
                             }
                         }
                     }
                 }
+                .padding(16)
             }
-            
-            Divider()
-                .padding(.vertical, 4)
-            
-            // Symbol Selection
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label("Symbol", systemImage: "star.circle.fill")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.primary)
-                    
-                    Spacer()
-                    
-                    Text("For accessibility")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(Color(.systemGray5))
-                        )
-                }
-                
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 8) {
-                    ForEach(availableSymbols, id: \.self) { symbol in
-                        SymbolSelectionButton(
-                            symbol: symbol,
-                            isSelected: appearance.symbol == symbol,
-                            accentColor: appearance.color
-                        ) {
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                                appearance.symbol = symbol
-                            }
-                        }
+            .navigationTitle("Edit Outcome")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
                     }
                 }
             }
         }
-        .padding(.vertical, 12)
-    }
-    
-    private func colorName(for hex: String) -> String {
-        colorPalette.first(where: { $0.hex == hex })?.name ?? "Custom"
     }
     
     private func symbolName(for symbol: String) -> String {

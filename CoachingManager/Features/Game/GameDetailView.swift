@@ -1525,11 +1525,18 @@ struct EventMarkerView: View {
     let isHighlighted: Bool
     let isFaded: Bool
     
+    @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
+    @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
+    
     init(event: GameEvent, circleResultSettings: CircleResultSettings = CircleResultSettings.loadFromDefaults(), isHighlighted: Bool = false, isFaded: Bool = false) {
         self.event = event
         self.circleResultSettings = circleResultSettings
         self.isHighlighted = isHighlighted
         self.isFaded = isFaded
+    }
+    
+    private var teamColor: Color {
+        TeamColorSettings.color(for: event.team, ourHex: ourTeamColorHex, opponentHex: opponentTeamColorHex)
     }
     
     private var color: Color {
@@ -1538,7 +1545,7 @@ struct EventMarkerView: View {
             return circleResultSettings.appearance(for: result).color
         }
         // Default team-based color for other events
-        return event.team == .ourTeam ? .red : .blue
+        return teamColor
     }
     
     private var icon: String {
@@ -1586,7 +1593,7 @@ struct EventMarkerView: View {
             
             // Team indicator ring (thin border showing team)
             Circle()
-                .stroke(event.team == .ourTeam ? Color.red : Color.blue, lineWidth: 2 * sizeMultiplier)
+                .stroke(teamColor, lineWidth: 2 * sizeMultiplier)
                 .frame(width: 30 * sizeMultiplier, height: 30 * sizeMultiplier)
             
             // Inner circle with outcome color
@@ -1616,6 +1623,8 @@ struct EventCardView: View {
     var onDelete: (() -> Void)? = nil
     
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
+    @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
     
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -1647,7 +1656,7 @@ struct EventCardView: View {
     }
     
     private var teamColor: Color {
-        event.team == .ourTeam ? .red : .blue
+        TeamColorSettings.color(for: event.team, ourHex: ourTeamColorHex, opponentHex: opponentTeamColorHex)
     }
     
     private var eventIcon: String {
@@ -1830,6 +1839,8 @@ struct EventListRowView: View {
     var onDelete: (() -> Void)? = nil
     
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
+    @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
     
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -1861,7 +1872,7 @@ struct EventListRowView: View {
     }
     
     private var teamColor: Color {
-        event.team == .ourTeam ? .red : .blue
+        TeamColorSettings.color(for: event.team, ourHex: ourTeamColorHex, opponentHex: opponentTeamColorHex)
     }
     
     private var eventIcon: String {
@@ -2058,11 +2069,18 @@ struct HeatmapOverlay: View {
     let events: [GameEvent]
     let pitchSize: CGSize
     
+    @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
+    @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
+    
+    private func teamColor(for team: TeamType) -> Color {
+        TeamColorSettings.color(for: team, ourHex: ourTeamColorHex, opponentHex: opponentTeamColorHex)
+    }
+    
     var body: some View {
         ZStack {
             ForEach(events) { event in
                 Circle()
-                    .fill(event.team == .ourTeam ? Color.red.opacity(0.3) : Color.blue.opacity(0.3))
+                    .fill(teamColor(for: event.team).opacity(0.3))
                     .frame(width: 50, height: 50)
                     .blur(radius: 15)
                     .position(event.location)

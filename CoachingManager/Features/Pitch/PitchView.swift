@@ -185,8 +185,9 @@ struct PitchView: View {
     @AppStorage("minPlayersOnPitch") private var minPlayersOnPitch = 11
     @AppStorage("enableSkillFilter") private var enableSkillFilter = false
     @AppStorage("requiredSkills") private var requiredSkills: String = ""
-    @AppStorage("showPlayerTimers") private var showPlayerTimers = true
-    
+    // @AppStorage("showPlayerTimers") private var showPlayerTimers = false
+    let showPlayerTimers = false // Temporary toggle for player timers until fully implemented
+
     @State private var showNotification = false
     @State private var showSkillNotification = false
     @State private var showPlayerCountNotification = false
@@ -1525,3 +1526,4 @@ struct PitchTimerOverlay: View {
         )
     }
 }
+
