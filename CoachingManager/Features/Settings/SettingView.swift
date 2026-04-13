@@ -16,7 +16,7 @@ struct SettingsView: View {
     @AppStorage("defaultTeamId") private var defaultTeamId: String = ""
     @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
     @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
-    // @AppStorage("showPlayerTimers") private var showPlayerTimers = false
+     @AppStorage("showPlayerTimers") private var showPlayerTimers = false
     
     @Query(sort: \Team.name) private var teams: [Team]
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
@@ -158,13 +158,13 @@ struct SettingsView: View {
                 }
 
                 // MARK: - Pitch Display //TODO need to fix player timer
-                // Section {
-                //     Toggle("Show Player Timers", isOn: $showPlayerTimers)
-                // } header: {
-                //     Label("Pitch Display", systemImage: "clock")
-                // } footer: {
-                //     Text("Toggle timer badges under players on the pitch and bench.")
-                // }
+                 Section {
+                     Toggle("Show Player Timers", isOn: $showPlayerTimers)
+                 } header: {
+                     Label("Pitch Display", systemImage: "clock")
+                 } footer: {
+                     Text("Toggle timer badges under players on the pitch and bench.")
+                 }
                 
                 // MARK: - Event Recording Settings
                 Section {

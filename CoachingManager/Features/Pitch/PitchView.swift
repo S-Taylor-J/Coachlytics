@@ -185,8 +185,8 @@ struct PitchView: View {
     @AppStorage("minPlayersOnPitch") private var minPlayersOnPitch = 11
     @AppStorage("enableSkillFilter") private var enableSkillFilter = false
     @AppStorage("requiredSkills") private var requiredSkills: String = ""
-    // @AppStorage("showPlayerTimers") private var showPlayerTimers = false
-    let showPlayerTimers = false // Temporary toggle for player timers until fully implemented
+     @AppStorage("showPlayerTimers") private var showPlayerTimers = false
+//    let showPlayerTimers = false // Temporary toggle for player timers until fully implemented
 
     @State private var showNotification = false
     @State private var showSkillNotification = false
@@ -204,8 +204,6 @@ struct PitchView: View {
     // Shared player time service (continues running when navigating away)
     @ObservedObject private var playerTimeService = PlayerTimeService.shared
     
-    // Game timer for syncing with match view
-    @State private var gameTimer: GameTimer? = nil
     
     // Track scene phase for background handling
     @Environment(\.scenePhase) private var scenePhase
@@ -225,19 +223,29 @@ struct PitchView: View {
 
     
     // Computed property to get player times from the shared service
-    private var playerQuarterTimes: [UUID: TimeInterval] {
-        guard let game = currentGame else { return [:] }
-        let timer = GameTimerService.shared.timer(for: game)
-        return playerTimeService.getAllTimes(for: game.id, quarter: timer.currentQuarter)
+    private func playerQuarterTimes(for game: Game, timer: GameTimer) -> [UUID: TimeInterval] {
+        playerTimeService.getAllTimes(for: game.id, quarter: timer.currentQuarter)
     }
     
     // Calculate quarter play percentage for a player
     // Service tickCount ensures this recalculates when timer updates
-    private func quarterPlayPercentage(for player: Player) -> Double {
+    private func quarterPlayPercentage(for player: Player, game: Game, timer: GameTimer) -> Double {
         _ = playerTimeService.tickCount // Force recalculation on service tick
         guard quarterDurationSeconds > 0 else { return 0 }
-        let time = playerQuarterTimes[player.id] ?? 0
+        let time = playerQuarterTimes(for: game, timer: timer)[player.id] ?? 0
         return min(time / quarterDurationSeconds, 1.0)
+    }
+
+    private func configurePlayerTimeAutoSave(for game: Game) {
+        playerTimeService.onSaveRequested = { [modelContext] in
+            let timer = GameTimerService.shared.timer(for: game)
+            let quarter = timer.currentQuarter
+            let times = PlayerTimeService.shared.getAllTimes(for: game.id, quarter: quarter)
+            for (playerId, time) in times {
+                game.updatePlayTime(forPlayer: playerId, quarter: quarter, time: time)
+            }
+            try? modelContext.save()
+        }
     }
     
     private var requiredSkillsSet: Set<String> {
@@ -257,6 +265,18 @@ struct PitchView: View {
     }
     
     var body: some View {
+        if let game = currentGame {
+            PitchTimerObservedView(game: game) { gameTimer, game in
+                pitchContent(game: game, gameTimer: gameTimer)
+            }
+        } else {
+            pitchContentNoGame()
+        }
+    }
+
+    @ViewBuilder
+    private func pitchContent(game: Game, gameTimer: GameTimer) -> some View {
+        let playerTimes = playerQuarterTimes(for: game, timer: gameTimer)
         ZStack {
             // Background gradient
             backgroundGradient
@@ -269,10 +289,10 @@ struct PitchView: View {
 //                    .padding(.top, 8)
                 
                 // MARK: - Timer Display (above pitch)
-                if let timer = gameTimer, let game = currentGame, !game.isCompleted {
+                if !game.isCompleted {
                     HStack {
                         Spacer()
-                        PitchTimerOverlay(gameTimer: timer, game: game)
+                        PitchTimerOverlay(gameTimer: gameTimer, game: game)
                         Spacer()
                     }
                     .padding(.horizontal, isCompact ? 12 : 20)
@@ -282,13 +302,13 @@ struct PitchView: View {
                 // MARK: - Main Content
                 HStack(alignment: .top, spacing: isCompact ? 8 : 16) {
                     // MARK: Left Panel - Team & Squad
-                    leftPanel
+                    leftPanel(game: game, gameTimer: gameTimer, playerTimes: playerTimes)
                         .frame(width: leftPanelWidth)
                         .frame(maxHeight: .infinity)
                         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isBenchCollapsed)
                     
                     // MARK: Pitch Area
-                    pitchArea
+                    pitchArea(game: game, gameTimer: gameTimer, playerTimes: playerTimes)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .frame(maxHeight: .infinity, alignment: .top)
@@ -327,7 +347,7 @@ struct PitchView: View {
                     NavigationLink(destination: PlayerTimeMinimalView(
                         players: players,
                         pitchPlayers: pitchPlayers,
-                        playerQuarterTimes: playerQuarterTimes
+                        playerQuarterTimes: playerQuarterTimes(for: game, timer: gameTimer)
                     )) {
                         Image(systemName: "clock.fill")
                             .font(.system(size: 15, weight: .medium))
@@ -372,29 +392,13 @@ struct PitchView: View {
             loadQuarterTimes()
             loadGameSettings()
             syncPlayersOnPitchWithService()
-            // Initialize game timer for sync with match view
-            if let game = currentGame {
-                if activeGameId.isEmpty {
-                    activeGameId = game.id.uuidString
-                }
-                gameTimer = GameTimerService.shared.timer(for: game)
+            if activeGameId.isEmpty {
+                activeGameId = game.id.uuidString
             }
             // Track initial game ID
             previousGameId = activeGameId
-            // Set up auto-save callback
-            playerTimeService.onSaveRequested = { [modelContext, activeGameId, activeGames] in
-                // Find and save to the current game
-                guard !activeGameId.isEmpty else { return }
-                if let game = activeGames.first(where: { $0.id.uuidString == activeGameId }) ?? activeGames.first {
-                    let timer = GameTimerService.shared.timer(for: game)
-                    let quarter = timer.currentQuarter
-                    let times = PlayerTimeService.shared.getAllTimes(for: game.id, quarter: quarter)
-                    for (playerId, time) in times {
-                        game.updatePlayTime(forPlayer: playerId, quarter: quarter, time: time)
-                    }
-                    try? modelContext.save()
-                }
-            }
+            configurePlayerTimeAutoSave(for: game)
+            activeQuarterDuration = TimeInterval(gameTimer.quarterDurationInSeconds)
         }
         .onDisappear {
             savePositions()
@@ -408,13 +412,13 @@ struct PitchView: View {
         }
         .onChange(of: activeGames) { _, newGames in
             // Sync activeQuarterDuration when games list changes
-            if let game = newGames.first(where: { $0.id.uuidString == activeGameId }) ?? newGames.first {
+            if let updatedGame = newGames.first(where: { $0.id.uuidString == activeGameId }) ?? newGames.first {
                 if activeGameId.isEmpty {
-                    activeGameId = game.id.uuidString
+                    activeGameId = updatedGame.id.uuidString
                 }
-                let timer = GameTimerService.shared.timer(for: game)
+                let timer = GameTimerService.shared.timer(for: updatedGame)
                 activeQuarterDuration = TimeInterval(timer.quarterDurationInSeconds)
-                gameTimer = timer
+                configurePlayerTimeAutoSave(for: updatedGame)
             }
         }
         .onChange(of: activeGameId) { oldId, newId in
@@ -431,6 +435,133 @@ struct PitchView: View {
                 syncPlayersOnPitchWithService()
             }
             previousGameId = newId
+            if let updatedGame = currentGame {
+                configurePlayerTimeAutoSave(for: updatedGame)
+            }
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            handleScenePhaseChange(from: oldPhase, to: newPhase)
+        }
+    }
+
+    @ViewBuilder
+    private func pitchContentNoGame() -> some View {
+        ZStack {
+            // Background gradient
+            backgroundGradient
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Status banner
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 8, height: 8)
+                    Text("No active game")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 8)
+
+                // MARK: - Main Content
+                HStack(alignment: .top, spacing: isCompact ? 8 : 16) {
+                    // MARK: Left Panel - Team & Squad
+                    leftPanelNoGame()
+                        .frame(width: leftPanelWidth)
+                        .frame(maxHeight: .infinity)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isBenchCollapsed)
+
+                    // MARK: Pitch Area
+                    pitchAreaNoGame()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.horizontal, isCompact ? 12 : 20)
+                .padding(.top, isCompact ? 4 : 8)
+            }
+
+            // MARK: - Floating Notifications
+            notificationsOverlay
+        }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Pitch Planner")
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                HStack(spacing: 16) {
+                    // Clear all button
+                    if !pitchPlayers.isEmpty {
+                        Button {
+                            showClearConfirmation = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 14, weight: .medium))
+                                Text("Clear")
+                                    .font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(.red.opacity(0.8))
+                        }
+                    }
+
+                    // Play time tracker (disabled without a game)
+                    NavigationLink(destination: PlayerTimeMinimalView(
+                        players: players,
+                        pitchPlayers: pitchPlayers,
+                        playerQuarterTimes: [:]
+                    )) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.blue)
+                    }
+                    .disabled(true)
+                    .opacity(0.4)
+                }
+            }
+        }
+        .confirmationDialog(
+            "Clear Formation",
+            isPresented: $showClearConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear All Players", role: .destructive) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    pitchPlayers.removeAll()
+                }
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.success)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will remove all \(pitchPlayers.count) players from the pitch.")
+        }
+        .sheet(item: $selectedPitchPlayerForSwap) { pitchPlayer in
+            SwapPlayerSheet(
+                currentPlayer: pitchPlayer.player,
+                availablePlayers: filteredPlayers.filter { p in
+                    !pitchPlayers.contains { $0.player.id == p.id }
+                },
+                onSwap: { newPlayer in
+                    swapPlayer(pitchPlayer: pitchPlayer, with: newPlayer)
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .onAppear {
+            selectedPitchPlayerForSwap = nil // Clear any stale state
+            loadSavedPositions()
+            loadGameSettings()
+        }
+        .onDisappear {
+            savePositions()
+        }
+        .onChange(of: pitchPlayers) { _, newPlayers in
+            validateSkills()
+            savePositions()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             handleScenePhaseChange(from: oldPhase, to: newPhase)
@@ -495,7 +626,7 @@ struct PitchView: View {
         let quarter = timer.currentQuarter
         
         // Update each player's time for the current quarter
-        for (playerId, time) in playerQuarterTimes {
+        for (playerId, time) in playerQuarterTimes(for: game, timer: timer) {
             game.updatePlayTime(forPlayer: playerId, quarter: quarter, time: time)
         }
         
@@ -656,6 +787,22 @@ struct PitchView: View {
     }
 }
 
+private struct PitchTimerObservedView<Content: View>: View {
+    @ObservedObject var gameTimer: GameTimer
+    let game: Game
+    let content: (GameTimer, Game) -> Content
+
+    init(game: Game, @ViewBuilder content: @escaping (GameTimer, Game) -> Content) {
+        self.game = game
+        self._gameTimer = ObservedObject(wrappedValue: GameTimerService.shared.timer(for: game))
+        self.content = content
+    }
+
+    var body: some View {
+        content(gameTimer, game)
+    }
+}
+
 // MARK: - View Components Extension
 extension PitchView {
     
@@ -725,14 +872,26 @@ extension PitchView {
     }
     
     // MARK: Left Panel
-    private var leftPanel: some View {
+    private func leftPanel(game: Game, gameTimer: GameTimer, playerTimes: [UUID: TimeInterval]) -> some View {
         Group {
             if isBenchCollapsed {
                 // Collapsed state — slim tab with expand button and bench count badge
                 collapsedBenchTab
             } else {
                 // Expanded state — full bench panel
-                expandedBenchPanel
+                expandedBenchPanel(game: game, gameTimer: gameTimer, playerTimes: playerTimes)
+            }
+        }
+    }
+
+    private func leftPanelNoGame() -> some View {
+        Group {
+            if isBenchCollapsed {
+                // Collapsed state — slim tab with expand button and bench count badge
+                collapsedBenchTab
+            } else {
+                // Expanded state — full bench panel
+                expandedBenchPanelNoGame()
             }
         }
     }
@@ -796,7 +955,7 @@ extension PitchView {
         )
     }
     
-    private var expandedBenchPanel: some View {
+    private func expandedBenchPanel(game: Game, gameTimer: GameTimer, playerTimes: [UUID: TimeInterval]) -> some View {
         VStack(spacing: 0) {
             // Header with collapse button
             HStack {
@@ -872,8 +1031,8 @@ extension PitchView {
                         ForEach(availablePlayers) { player in
                             DraggablePlayerView(
                                 player: player,
-                                quarterPlayPercentage: quarterPlayPercentage(for: player),
-                                playTime: playerQuarterTimes[player.id] ?? 0,
+                                quarterPlayPercentage: quarterPlayPercentage(for: player, game: game, timer: gameTimer),
+                                playTime: playerTimes[player.id] ?? 0,
                                 isCompact: isCompact,
                                 showTimer: showPlayerTimers
                             )
@@ -925,6 +1084,136 @@ extension PitchView {
                 .stroke(Color(.systemGray5), lineWidth: 1)
         )
     }
+
+    private func expandedBenchPanelNoGame() -> some View {
+        VStack(spacing: 0) {
+            // Header with collapse button
+            HStack {
+                Image(systemName: "person.3.sequence.fill")
+                    .font(.system(size: isCompact ? 10 : 14))
+                Text("")
+                    .font(.system(size: isCompact ? 10 : 15, weight: .semibold, design: .rounded))
+                Spacer()
+                // Collapse button
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isBenchCollapsed = true
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(6)
+                        .background(Circle().fill(Color(.systemGray5)))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, isCompact ? 8 : 14)
+            .padding(.top, isCompact ? 8 : 14)
+            .padding(.bottom, isCompact ? 6 : 10)
+
+            // Clear Pitch Button (moved up)
+            if !pitchPlayers.isEmpty {
+                Button {
+                    showClearConfirmation = true
+                } label: {
+                    HStack(spacing: isCompact ? 4 : 6) {
+                        Image(systemName: "arrow.uturn.left.circle.fill")
+                            .font(.system(size: isCompact ? 10 : 12, weight: .semibold))
+                        Text(isCompact ? "Clear" : "Clear Pitch")
+                            .font(.system(size: isCompact ? 10 : 12, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, isCompact ? 8 : 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.red)
+                    )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, isCompact ? 6 : 10)
+                .padding(.bottom, isCompact ? 6 : 10)
+            }
+
+            // Divider with gradient
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [.clear, Color(.systemGray4), .clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 1)
+                .padding(.horizontal, 12)
+
+            // Players list
+            ScrollView(showsIndicators: false) {
+                LazyVStack(spacing: isCompact ? 6 : 10) {
+                    let availablePlayers = filteredPlayers.filter { p in
+                        !pitchPlayers.contains { $0.player.id == p.id }
+                    }
+
+                    if availablePlayers.isEmpty {
+                        emptySquadView
+                    } else {
+                        ForEach(availablePlayers) { player in
+                            DraggablePlayerView(
+                                player: player,
+                                quarterPlayPercentage: 0,
+                                playTime: 0,
+                                isCompact: isCompact,
+                                showTimer: showPlayerTimers
+                            )
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.8).combined(with: .opacity),
+                                    removal: .scale(scale: 0.8).combined(with: .opacity)
+                                ))
+                        }
+                    }
+                }
+                .padding(.top, isCompact ? 8 : 12)
+                .padding(.bottom, isCompact ? 60 : 80)
+                .padding(.horizontal, isCompact ? 2 : 4)
+                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: pitchPlayers.count)
+            }
+
+            // Drop hint footer
+            if !pitchPlayers.isEmpty {
+                VStack(spacing: 4) {
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.clear, Color(.systemGray4), .clear],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 1)
+                        .padding(.horizontal, 12)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.left.to.line")
+                            .font(.system(size: 9))
+                        Text("Drag to bench")
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundColor(.secondary.opacity(0.6))
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 8, x: 0, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(.systemGray5), lineWidth: 1)
+        )
+    }
     
     // MARK: Empty Squad View
     private var emptySquadView: some View {
@@ -942,7 +1231,7 @@ extension PitchView {
     }
     
     // MARK: Pitch Area
-    private var pitchArea: some View {
+    private func pitchArea(game: Game, gameTimer: GameTimer, playerTimes: [UUID: TimeInterval]) -> some View {
         GeometryReader { geo in
             ZStack {
                 PitchBackgroundImageView(isDropTargeted: isDropTargeted, imageContentMode: .fill)
@@ -960,8 +1249,8 @@ extension PitchView {
                         player: pitchPlayer.player,
                         position: $pitchPlayer.position,
                         pitchSize: geo.size,
-                        quarterPlayPercentage: quarterPlayPercentage(for: pitchPlayer.player),
-                        playTime: playerQuarterTimes[pitchPlayer.player.id] ?? 0,
+                        quarterPlayPercentage: quarterPlayPercentage(for: pitchPlayer.player, game: game, timer: gameTimer),
+                        playTime: playerTimes[pitchPlayer.player.id] ?? 0,
                         isCompact: isCompact,
                         showTimer: showPlayerTimers,
                         onRemove: {
@@ -991,6 +1280,73 @@ extension PitchView {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
          .aspectRatio(1024/1536, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    LinearGradient(
+                        colors: isDropTargeted
+                            ? [.blue.opacity(0.8), .purple.opacity(0.8)]
+                            : [Color.white.opacity(0.3), Color.white.opacity(0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: isDropTargeted ? 3 : 2
+                )
+        )
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.2), radius: 12, x: 0, y: 6)
+        .animation(.easeInOut(duration: 0.2), value: isDropTargeted)
+    }
+
+    private func pitchAreaNoGame() -> some View {
+        GeometryReader { geo in
+            ZStack {
+                PitchBackgroundImageView(isDropTargeted: isDropTargeted, imageContentMode: .fill)
+
+                // Drop zone indicator
+                DropZoneIndicator(
+                    isTargeted: isDropTargeted,
+                    dropLocation: dropLocation,
+                    pitchSize: geo.size
+                )
+
+                // Players on pitch
+                ForEach($pitchPlayers) { $pitchPlayer in
+                    PlayerOnPitchView(
+                        player: pitchPlayer.player,
+                        position: $pitchPlayer.position,
+                        pitchSize: geo.size,
+                        quarterPlayPercentage: 0,
+                        playTime: 0,
+                        isCompact: isCompact,
+                        showTimer: showPlayerTimers,
+                        onRemove: {
+                            removePlayerFromPitch(pitchPlayer.player)
+                        },
+                        onTap: {
+                            selectedPitchPlayerForSwap = pitchPlayer
+                        }
+                    )
+                }
+
+                // Empty state hint
+                if pitchPlayers.isEmpty {
+                    emptyPitchOverlay
+                }
+            }
+            .onDrop(
+                of: [UTType.text],
+                delegate: PitchDropDelegate(
+                    players: players,
+                    pitchPlayers: $pitchPlayers,
+                    pitchSize: geo.size,
+                    isTargeted: $isDropTargeted,
+                    dropLocation: $dropLocation
+                )
+            )
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .aspectRatio(1024/1536, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
