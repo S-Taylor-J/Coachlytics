@@ -51,6 +51,9 @@ class Game {
     
     // Player play times stored as JSON data (per player per quarter)
     var playerPlayTimesData: Data?
+
+    // Player stints stored as JSON data (per player)
+    var playerStintsData: Data?
     
     // Computed property to check if game is scheduled for the future
     var isScheduled: Bool {
@@ -85,6 +88,7 @@ class Game {
         self.isCompleted = false
         self.eventsData = nil
         self.playerPlayTimesData = nil
+        self.playerStintsData = nil
     }
     
     // MARK: - Player Play Times Management
@@ -99,15 +103,36 @@ class Game {
             playerPlayTimesData = try? JSONEncoder().encode(newValue)
         }
     }
+
+    /// Structure to store stints: [playerId: [PlayerStint]]
+    var playerStints: [String: [PlayerStint]] {
+        get {
+            guard let data = playerStintsData else { return [:] }
+            return (try? JSONDecoder().decode([String: [PlayerStint]].self, from: data)) ?? [:]
+        }
+        set {
+            playerStintsData = try? JSONEncoder().encode(newValue)
+        }
+    }
     
     /// Get total play time for a player across all quarters
     func totalPlayTime(forPlayer playerId: UUID) -> TimeInterval {
+        let stints = playerStints[playerId.uuidString] ?? []
+        if !stints.isEmpty {
+            return stints.reduce(0) { total, stint in
+                total + max(0, resolvedStintEnd(stint) - stint.startTime)
+            }
+        }
         let playerTimes = playerPlayTimes[playerId.uuidString] ?? [:]
         return playerTimes.values.reduce(0, +)
     }
     
     /// Get play time for a player in a specific quarter
     func playTime(forPlayer playerId: UUID, quarter: Int) -> TimeInterval {
+        let stints = playerStints[playerId.uuidString] ?? []
+        if !stints.isEmpty {
+            return timeForStints(stints, quarter: quarter)
+        }
         let playerTimes = playerPlayTimes[playerId.uuidString] ?? [:]
         return playerTimes["\(quarter)"] ?? 0
     }
@@ -123,11 +148,43 @@ class Game {
     
     /// Get all players with their total play time
     var allPlayerPlayTimes: [(playerId: UUID, totalTime: TimeInterval)] {
-        playerPlayTimes.compactMap { key, quarters in
+        if !playerStints.isEmpty {
+            return playerStints.compactMap { key, stints in
+                guard let uuid = UUID(uuidString: key) else { return nil }
+                let total = stints.reduce(0) { sum, stint in
+                    sum + max(0, resolvedStintEnd(stint) - stint.startTime)
+                }
+                return (uuid, total)
+            }.sorted { $0.totalTime > $1.totalTime }
+        }
+        return playerPlayTimes.compactMap { key, quarters in
             guard let uuid = UUID(uuidString: key) else { return nil }
             let total = quarters.values.reduce(0, +)
             return (uuid, total)
         }.sorted { $0.totalTime > $1.totalTime }
+    }
+
+    private func resolvedStintEnd(_ stint: PlayerStint) -> TimeInterval {
+        stint.endTime ?? elapsedTime
+    }
+
+    private func timeForStints(_ stints: [PlayerStint], quarter: Int) -> TimeInterval {
+        let quarterDuration = TimeInterval(quarterDurationInSeconds)
+        let quarterStart = quarterDuration * TimeInterval(max(0, quarter - 1))
+        let quarterEnd = min(quarterDuration * TimeInterval(quarter), elapsedTime)
+        guard quarterEnd > quarterStart else { return 0 }
+
+        var total: TimeInterval = 0
+        for stint in stints {
+            let start = stint.startTime
+            let end = resolvedStintEnd(stint)
+            let overlapStart = max(start, quarterStart)
+            let overlapEnd = min(end, quarterEnd)
+            if overlapEnd > overlapStart {
+                total += overlapEnd - overlapStart
+            }
+        }
+        return total
     }
     
     // MARK: - Events Management

@@ -16,7 +16,7 @@ struct GoalTypeRow: View {
     
     private var percentage: Double {
         guard total > 0 else { return 0 }
-        return Double(count) / Double(total) * 100
+        return min(max(Double(count) / Double(total), 0), 1) * 100
     }
     
     var body: some View {
@@ -36,6 +36,7 @@ struct GoalTypeRow: View {
                         .fill(color)
                         .frame(width: max(geo.size.width * CGFloat(percentage) / 100, 0), height: 8)
                 }
+                .clipped()
             }
             .frame(height: 8)
             

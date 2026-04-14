@@ -166,6 +166,7 @@ struct GameDetailView: View {
                     // MARK: - Game Clock Card
                     GameClockCard2(
                         gameTimer: gameTimer,
+                        gameId: game.id,
                         isCompleted: game.isCompleted,
                         onSaveState: saveGameState,
                         onEndQuarter: handleEndQuarter,
@@ -906,8 +907,8 @@ struct GameDetailView: View {
         let quarterEvents = game.events(forQuarter: endedQuarter)
         _ = quarterEvents.filter { $0.eventType == .infraction }.count
         
-        // Reset player quarter times for the new quarter
-//        PitchView.resetQuarterTimes()
+        // Persist stints so quarter transition is saved
+        PlayerTimeService.shared.persistStints(to: game)
         
         // Save game state
         saveGameState()
@@ -974,6 +975,7 @@ struct GameDetailView: View {
 // MARK: - Game Clock Card 2
 struct GameClockCard2: View {
     @ObservedObject var gameTimer: GameTimer
+    let gameId: UUID
     let isCompleted: Bool
     let onSaveState: () -> Void
     let onEndQuarter: () -> Void
@@ -1119,7 +1121,13 @@ struct GameClockCard2: View {
                                 color: .blue,
                                 isCompact: true
                             ) {
+                                let previousQuarter = gameTimer.currentQuarter
                                 gameTimer.endQuarter()
+                                PlayerTimeService.shared.moveToQuarter(
+                                    gameTimer.currentQuarter,
+                                    gameId: gameId,
+                                    previousQuarter: previousQuarter
+                                )
                                 onEndQuarter()
                                 onSaveState()
                             }

@@ -73,9 +73,10 @@ class GameTimer: ObservableObject {
     private var timer: Timer?
     private var saveCallback: ((GameTimer) -> Void)?
     private var hasActiveSession: Bool = false  // Track if timer has been used in this session
-    private var runningSince: Date?
-    private var accumulatedElapsed: TimeInterval = 0
-    private var accumulatedQuarterElapsed: TimeInterval = 0
+    private let clock = ContinuousClock()
+    private var runningSince: ContinuousClock.Instant?
+    private var accumulatedElapsed: Duration = .zero
+    private var accumulatedQuarterElapsed: Duration = .zero
     private var lastAutosaveSecond: Int = 0
     
     init(game: Game) {
@@ -86,8 +87,8 @@ class GameTimer: ObservableObject {
         self.quarterElapsedTime = game.quarterElapsedTime
         self.quarters = game.quarters
         self.quarterDuration = game.quarterDuration
-        self.accumulatedElapsed = game.elapsedTime
-        self.accumulatedQuarterElapsed = game.quarterElapsedTime
+        self.accumulatedElapsed = durationFromTimeInterval(game.elapsedTime)
+        self.accumulatedQuarterElapsed = durationFromTimeInterval(game.quarterElapsedTime)
         
         // Resume if it was running
         if game.isRunning && game.isGameActive && !game.isCompleted {
@@ -102,8 +103,8 @@ class GameTimer: ObservableObject {
         if !isRunning && !hasActiveSession {
             self.isGameActive = game.isGameActive
             self.currentQuarter = game.currentQuarter
-            self.accumulatedElapsed = game.elapsedTime
-            self.accumulatedQuarterElapsed = game.quarterElapsedTime
+            self.accumulatedElapsed = durationFromTimeInterval(game.elapsedTime)
+            self.accumulatedQuarterElapsed = durationFromTimeInterval(game.quarterElapsedTime)
             self.elapsedTime = game.elapsedTime
             self.quarterElapsedTime = game.quarterElapsedTime
             self.runningSince = nil
@@ -141,8 +142,8 @@ class GameTimer: ObservableObject {
         hasActiveSession = true  // Mark session as active
         isGameActive = true
         currentQuarter = 1
-        accumulatedElapsed = 0
-        accumulatedQuarterElapsed = 0
+        accumulatedElapsed = .zero
+        accumulatedQuarterElapsed = .zero
         elapsedTime = 0
         quarterElapsedTime = 0
         lastAutosaveSecond = 0
@@ -155,7 +156,7 @@ class GameTimer: ObservableObject {
         hasActiveSession = true  // Mark session as active when clock starts
         isRunning = true
         if runningSince == nil {
-            runningSince = Date()
+            runningSince = clock.now
         }
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             DispatchQueue.main.async {
@@ -187,7 +188,7 @@ class GameTimer: ObservableObject {
         
         if currentQuarter < quarters {
             currentQuarter += 1
-            accumulatedQuarterElapsed = 0
+            accumulatedQuarterElapsed = .zero
             quarterElapsedTime = 0  // Reset quarter time for new quarter
         } else {
             endGame()
@@ -209,12 +210,13 @@ class GameTimer: ObservableObject {
         // Subtract current quarter time from total
         let totalElapsed = elapsedTime
         let currentQuarterElapsed = quarterElapsedTime
-        accumulatedElapsed = max(0, totalElapsed - currentQuarterElapsed)
-        elapsedTime = accumulatedElapsed
+        let newTotal = durationFromTimeInterval(totalElapsed) - durationFromTimeInterval(currentQuarterElapsed)
+        accumulatedElapsed = newTotal > .zero ? newTotal : .zero
+        elapsedTime = durationToTimeInterval(accumulatedElapsed)
         
         // Go back one quarter
         currentQuarter -= 1
-        accumulatedQuarterElapsed = 0
+        accumulatedQuarterElapsed = .zero
         quarterElapsedTime = 0  // Reset quarter time
         
         triggerSave()
@@ -232,8 +234,8 @@ class GameTimer: ObservableObject {
         isGameActive = false
         hasActiveSession = false  // Reset session state
         currentQuarter = 1
-        accumulatedElapsed = 0
-        accumulatedQuarterElapsed = 0
+        accumulatedElapsed = .zero
+        accumulatedQuarterElapsed = .zero
         elapsedTime = 0
         quarterElapsedTime = 0
         lastAutosaveSecond = 0
@@ -249,13 +251,14 @@ class GameTimer: ObservableObject {
             // Subtract the current quarter time from total elapsed time
             let totalElapsed = self.elapsedTime
             let currentQuarterElapsed = self.quarterElapsedTime
-            self.accumulatedElapsed = max(0, totalElapsed - currentQuarterElapsed)
-            self.elapsedTime = self.accumulatedElapsed
+            let newTotal = self.durationFromTimeInterval(totalElapsed) - self.durationFromTimeInterval(currentQuarterElapsed)
+            self.accumulatedElapsed = newTotal > .zero ? newTotal : .zero
+            self.elapsedTime = self.durationToTimeInterval(self.accumulatedElapsed)
             // Reset quarter time to 0
-            self.accumulatedQuarterElapsed = 0
+            self.accumulatedQuarterElapsed = .zero
             self.quarterElapsedTime = 0
             if self.isRunning {
-                self.runningSince = Date()
+                self.runningSince = self.clock.now
             }
             self.objectWillChange.send()  // Force UI update
             self.triggerSave()
@@ -267,9 +270,11 @@ class GameTimer: ObservableObject {
     }
 
     private func refreshElapsedTimes() {
-        let live = liveSeconds()
-        elapsedTime = accumulatedElapsed + live
-        quarterElapsedTime = accumulatedQuarterElapsed + live
+        let live = liveDuration()
+        let totalElapsed = accumulatedElapsed + live
+        let totalQuarter = accumulatedQuarterElapsed + live
+        elapsedTime = durationToTimeInterval(totalElapsed)
+        quarterElapsedTime = durationToTimeInterval(totalQuarter)
 
         let elapsedSeconds = Int(elapsedTime)
         if elapsedSeconds - lastAutosaveSecond >= 10 {
@@ -278,20 +283,32 @@ class GameTimer: ObservableObject {
         }
     }
 
-    private func liveSeconds() -> TimeInterval {
-        guard let start = runningSince else { return 0 }
-        return Date().timeIntervalSince(start)
+    private func liveDuration() -> Duration {
+        guard let start = runningSince else { return .zero }
+        return start.duration(to: clock.now)
     }
 
     private func bankElapsedTimes() {
-        let live = liveSeconds()
-        if live > 0 {
+        let live = liveDuration()
+        if live > .zero {
             accumulatedElapsed += live
             accumulatedQuarterElapsed += live
-            elapsedTime = accumulatedElapsed
-            quarterElapsedTime = accumulatedQuarterElapsed
+            elapsedTime = durationToTimeInterval(accumulatedElapsed)
+            quarterElapsedTime = durationToTimeInterval(accumulatedQuarterElapsed)
         }
         runningSince = nil
+    }
+
+    private func durationFromTimeInterval(_ interval: TimeInterval) -> Duration {
+        let nanos = Int64(interval * 1_000_000_000)
+        return .nanoseconds(nanos)
+    }
+
+    private func durationToTimeInterval(_ duration: Duration) -> TimeInterval {
+        let components = duration.components
+        let seconds = TimeInterval(components.seconds)
+        let attoseconds = TimeInterval(components.attoseconds) / 1_000_000_000_000_000_000.0
+        return seconds + attoseconds
     }
     
     deinit {

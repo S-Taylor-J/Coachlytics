@@ -207,7 +207,6 @@ struct PitchView: View {
     
     // Track scene phase for background handling
     @Environment(\.scenePhase) private var scenePhase
-    @State private var backgroundTimestamp: Date? = nil
     @State private var previousGameId: String = ""
     
     // Device detection - true for iPhone, false for iPad
@@ -238,12 +237,7 @@ struct PitchView: View {
 
     private func configurePlayerTimeAutoSave(for game: Game) {
         playerTimeService.onSaveRequested = { [modelContext] in
-            let timer = GameTimerService.shared.timer(for: game)
-            let quarter = timer.currentQuarter
-            let times = PlayerTimeService.shared.getAllTimes(for: game.id, quarter: quarter)
-            for (playerId, time) in times {
-                game.updatePlayTime(forPlayer: playerId, quarter: quarter, time: time)
-            }
+            PlayerTimeService.shared.persistStints(to: game)
             try? modelContext.save()
         }
     }
@@ -584,35 +578,10 @@ struct PitchView: View {
     private func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
         switch newPhase {
         case .background, .inactive:
-            // App going to background - save timestamp if game timer is running
-            if let game = currentGame {
-                let timer = GameTimerService.shared.timer(for: game)
-                if timer.isRunning {
-                    backgroundTimestamp = Date()
-                }
-            }
-            // Save current state
-            saveQuarterTimes()
             saveTimesToGame()
             
         case .active:
-            // App coming to foreground - calculate elapsed time and add to players
-            if let timestamp = backgroundTimestamp,
-               let game = currentGame {
-                let timer = GameTimerService.shared.timer(for: game)
-                
-                // Only add time if the game timer is still running
-                if timer.isRunning {
-                    let elapsedSeconds = Date().timeIntervalSince(timestamp)
-                    
-                    // Add elapsed time via the service
-                    playerTimeService.addBackgroundTime(elapsedSeconds, gameId: game.id, quarter: timer.currentQuarter)
-                }
-            }
-            backgroundTimestamp = nil
-            
-            // Re-sync players on pitch
-            syncPlayersOnPitchWithService()
+            saveTimesToGame()
             
         @unknown default:
             break
@@ -622,29 +591,18 @@ struct PitchView: View {
     // MARK: Save Times to Game
     private func saveTimesToGame() {
         guard let game = currentGame else { return }
-        let timer = GameTimerService.shared.timer(for: game)
-        let quarter = timer.currentQuarter
-        
-        // Update each player's time for the current quarter
-        for (playerId, time) in playerQuarterTimes(for: game, timer: timer) {
-            game.updatePlayTime(forPlayer: playerId, quarter: quarter, time: time)
-        }
-        
+        playerTimeService.persistStints(to: game)
         try? modelContext.save()
     }
     
     // MARK: New Quarter - Reset Times (called from GameDetailView when quarter ends)
     static func resetQuarterTimes() {
-        UserDefaults.standard.removeObject(forKey: "playerQuarterTimes")
+        return
     }
     
     // Reset times for a specific game/quarter
     static func resetQuarterTimes(for gameId: UUID) {
-        UserDefaults.standard.removeObject(forKey: "playerQuarterTimes")
-        // Also reset in the service
-        if let timer = GameTimerService.shared.activeTimers[gameId] {
-            PlayerTimeService.shared.resetTimes(for: gameId, quarter: timer.currentQuarter)
-        }
+        _ = gameId
     }
     
     private func saveQuarterTimes() {
@@ -655,22 +613,17 @@ struct PitchView: View {
     private func loadQuarterTimes() {
         guard let game = currentGame else { return }
         let timer = GameTimerService.shared.timer(for: game)
-        let quarter = timer.currentQuarter
-        let gameTimes = game.playerPlayTimes
         
         // If game is newly started (elapsedTime is near 0), start with fresh times
         if timer.elapsedTime < 5 && timer.isGameActive && timer.currentQuarter == 1 {
-            playerTimeService.resetTimes(for: game.id, quarter: quarter)
+            playerTimeService.resetStints(for: game.id)
+            playerTimeService.persistStints(to: game)
+            try? modelContext.save()
             return
         }
-        
-        // Load times from game into the service
-        for (playerIdString, quarterTimes) in gameTimes {
-            if let playerId = UUID(uuidString: playerIdString),
-               let time = quarterTimes["\(quarter)"] {
-                playerTimeService.setTime(time, for: playerId, gameId: game.id, quarter: quarter)
-            }
-        }
+
+        // Load stints from game into the service
+        playerTimeService.loadStints(from: game)
     }
     
     // MARK: Load Game Settings
@@ -726,7 +679,7 @@ struct PitchView: View {
                 playerId: $0.player.id,
                 x: $0.position.x,
                 y: $0.position.y,
-                timeOnPitch: $0.timeOnPitch
+                timeOnPitch: 0
             )
         }
         if let data = try? JSONEncoder().encode(saved) {
@@ -744,7 +697,7 @@ struct PitchView: View {
                         id: saved.id,
                         player: player,
                         position: CGPoint(x: saved.x, y: saved.y),
-                        timeOnPitch: saved.timeOnPitch
+                        timeOnPitch: 0
                     )
                 } else {
                     return nil

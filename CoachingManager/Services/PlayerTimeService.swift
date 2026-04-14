@@ -9,16 +9,12 @@ import Foundation
 import SwiftUI
 import Combine
 
-/// A singleton service that tracks player play times using wall-clock time.
-/// Tracking is completely independent of the view hierarchy — switching tabs,
-/// navigating away, or backgrounding the app does not interrupt accumulation.
+/// A singleton service that tracks player play times as stints based on the match timer.
+/// Stints are anchored to the game timer's elapsed time, so the game clock is the source of truth.
 class PlayerTimeService: ObservableObject {
     static let shared = PlayerTimeService()
 
     // MARK: - Published State
-
-    /// Player times per game and quarter: [GameID: [Quarter: [PlayerID: TimeInterval]]]
-    @Published private(set) var playerTimes: [UUID: [Int: [UUID: TimeInterval]]] = [:]
 
     /// Players currently on pitch per game: [GameID: Set<PlayerID>]
     @Published var playersOnPitch: [UUID: Set<UUID>] = [:]
@@ -35,13 +31,8 @@ class PlayerTimeService: ObservableObject {
     private var lastSaveTime: Date = Date()
     private var trackedGames: [UUID: Game] = [:]
 
-    /// Wall-clock date at which we started crediting time for a given game.
-    /// Reset whenever the game timer pauses or the roster changes.
-    private var trackingStartDate: [UUID: Date] = [:]
-
-    /// Accumulated seconds already banked before the current tracking window started.
-    /// When the timer pauses we bank elapsed time here and clear trackingStartDate.
-    private var bankedSeconds: [UUID: [Int: [UUID: TimeInterval]]] = [:]
+    /// Player stints per game: [GameID: [PlayerID: [PlayerStint]]]
+    private var playerStintsByGame: [UUID: [UUID: [PlayerStint]]] = [:]
 
     // MARK: - Init
 
@@ -65,147 +56,164 @@ class PlayerTimeService: ObservableObject {
         // even when PitchView is not on screen.
         refreshPlayersOnPitchFromDefaults()
 
-        var didUpdate = false
-
-        for (gameId, playerIds) in playersOnPitch {
-            guard !playerIds.isEmpty else { continue }
-
-            guard let gameTimer = resolveGameTimer(for: gameId) else { continue }
-
-            let quarter = gameTimer.currentQuarter
-
-            if gameTimer.isRunning {
-                // Ensure a tracking window is open for this game.
-                if trackingStartDate[gameId] == nil {
-                    trackingStartDate[gameId] = Date()
-                }
-                didUpdate = true
-            } else {
-                // Timer paused — bank any in-progress window and close it.
-                bankCurrentWindow(gameId: gameId, playerIds: playerIds, quarter: quarter)
-            }
+        let shouldTick = playersOnPitch.contains { gameId, playerIds in
+            guard !playerIds.isEmpty else { return false }
+            return resolveGameTimer(for: gameId)?.isRunning ?? false
         }
+        guard shouldTick else { return }
 
-        if didUpdate {
-            DispatchQueue.main.async {
-                self.tickCount += 1
-                self.objectWillChange.send()
+        DispatchQueue.main.async {
+            self.tickCount += 1
+            self.objectWillChange.send()
 
-                if Date().timeIntervalSince(self.lastSaveTime) >= 30 {
-                    self.lastSaveTime = Date()
-                    self.onSaveRequested?()
-                }
+            if Date().timeIntervalSince(self.lastSaveTime) >= 30 {
+                self.lastSaveTime = Date()
+                self.onSaveRequested?()
             }
         }
     }
 
-    // MARK: - Wall-Clock Accumulation
+    // MARK: - Stint Helpers
 
-    /// Seconds elapsed in the currently open tracking window for a game.
-    private func liveWindowSeconds(for gameId: UUID) -> TimeInterval {
-        guard let start = trackingStartDate[gameId] else { return 0 }
-        return Date().timeIntervalSince(start)
-    }
-
-    /// Banks elapsed time from the open window into `bankedSeconds`, then closes the window.
-    private func bankCurrentWindow(gameId: UUID, playerIds: Set<UUID>, quarter: Int) {
-        guard let start = trackingStartDate[gameId] else { return }
-        let elapsed = Date().timeIntervalSince(start)
-        guard elapsed > 0 else { return }
-
-        for playerId in playerIds {
-            let existing = bankedSeconds[gameId]?[quarter]?[playerId] ?? 0
-            setBanked(existing + elapsed, playerId: playerId, gameId: gameId, quarter: quarter)
+    private func currentMatchTime(gameId: UUID) -> TimeInterval {
+        if let timer = resolveGameTimer(for: gameId) {
+            return timer.elapsedTime
         }
-        trackingStartDate[gameId] = nil
+        return trackedGames[gameId]?.elapsedTime ?? 0
     }
 
-    private func setBanked(_ value: TimeInterval, playerId: UUID, gameId: UUID, quarter: Int) {
-        if bankedSeconds[gameId] == nil { bankedSeconds[gameId] = [:] }
-        if bankedSeconds[gameId]?[quarter] == nil { bankedSeconds[gameId]?[quarter] = [:] }
-        bankedSeconds[gameId]?[quarter]?[playerId] = value
+    private func openStint(playerId: UUID, gameId: UUID, at time: TimeInterval) {
+        var byPlayer = playerStintsByGame[gameId] ?? [:]
+        var stints = byPlayer[playerId] ?? []
+        if let last = stints.last, last.endTime == nil {
+            return
+        }
+        stints.append(PlayerStint(startTime: time, endTime: nil))
+        byPlayer[playerId] = stints
+        playerStintsByGame[gameId] = byPlayer
     }
 
-    // MARK: - Time Access
+    private func closeStint(playerId: UUID, gameId: UUID, at time: TimeInterval) {
+        guard var byPlayer = playerStintsByGame[gameId],
+              var stints = byPlayer[playerId],
+              let last = stints.last,
+              last.endTime == nil
+        else { return }
 
-    /// Live play time for a player, including any open tracking window.
-    func getTime(for playerId: UUID, gameId: UUID, quarter: Int) -> TimeInterval {
-        let banked = bankedSeconds[gameId]?[quarter]?[playerId] ?? 0
-        let isRunning = resolveGameTimer(for: gameId)?.isRunning ?? false
-        let live: TimeInterval = isRunning ? liveWindowSeconds(for: gameId) : 0
-        return banked + live
+        stints[stints.count - 1].endTime = time
+        byPlayer[playerId] = stints
+        playerStintsByGame[gameId] = byPlayer
     }
 
-    func getAllTimes(for gameId: UUID, quarter: Int) -> [UUID: TimeInterval] {
-        let isRunning = resolveGameTimer(for: gameId)?.isRunning ?? false
-        let live: TimeInterval = isRunning ? liveWindowSeconds(for: gameId) : 0
+    private func applyRosterChange(gameId: UUID, newPlayers: Set<UUID>) {
+        let currentPlayers = playersOnPitch[gameId] ?? []
+        guard currentPlayers != newPlayers else { return }
 
-        var result = bankedSeconds[gameId]?[quarter] ?? [:]
+        let time = currentMatchTime(gameId: gameId)
+        let added = newPlayers.subtracting(currentPlayers)
+        let removed = currentPlayers.subtracting(newPlayers)
 
-        // Add the live window to all players currently on the pitch.
-        if let playerIds = playersOnPitch[gameId] {
-            for playerId in playerIds {
-                result[playerId] = (result[playerId] ?? 0) + live
-            }
+        for playerId in added {
+            openStint(playerId: playerId, gameId: gameId, at: time)
+        }
+        for playerId in removed {
+            closeStint(playerId: playerId, gameId: gameId, at: time)
+        }
+
+        playersOnPitch[gameId] = newPlayers
+        objectWillChange.send()
+    }
+
+    private func fallbackTimes(for gameId: UUID, quarter: Int) -> [UUID: TimeInterval] {
+        guard let game = trackedGames[gameId] else { return [:] }
+        guard !game.playerPlayTimes.isEmpty else { return [:] }
+
+        var result: [UUID: TimeInterval] = [:]
+        for (playerIdString, quarterTimes) in game.playerPlayTimes {
+            guard let playerId = UUID(uuidString: playerIdString) else { continue }
+            result[playerId] = quarterTimes["\(quarter)"] ?? 0
         }
         return result
     }
 
-    /// Directly set a player's banked time (used when loading from persisted storage).
-    func setTime(_ time: TimeInterval, for playerId: UUID, gameId: UUID, quarter: Int) {
-        setBanked(time, playerId: playerId, gameId: gameId, quarter: quarter)
-        objectWillChange.send()
+    // MARK: - Time Access
+
+    func getTime(for playerId: UUID, gameId: UUID, quarter: Int) -> TimeInterval {
+        getAllTimes(for: gameId, quarter: quarter)[playerId] ?? 0
+    }
+
+    func getAllTimes(for gameId: UUID, quarter: Int) -> [UUID: TimeInterval] {
+        guard let timer = resolveGameTimer(for: gameId) else {
+            return fallbackTimes(for: gameId, quarter: quarter)
+        }
+
+        let elapsed = timer.elapsedTime
+        let quarterDuration = TimeInterval(timer.quarterDurationInSeconds)
+        let quarterStart = quarterDuration * TimeInterval(max(0, quarter - 1))
+        let quarterEnd = min(quarterDuration * TimeInterval(quarter), elapsed)
+
+        guard quarterEnd > quarterStart else { return [:] }
+
+        let stintsByPlayer = playerStintsByGame[gameId] ?? [:]
+        if stintsByPlayer.isEmpty {
+            return fallbackTimes(for: gameId, quarter: quarter)
+        }
+
+        var result: [UUID: TimeInterval] = [:]
+        for (playerId, stints) in stintsByPlayer {
+            var total: TimeInterval = 0
+            for stint in stints {
+                let start = stint.startTime
+                let end = stint.endTime ?? elapsed
+                let overlapStart = max(start, quarterStart)
+                let overlapEnd = min(end, quarterEnd)
+                if overlapEnd > overlapStart {
+                    total += overlapEnd - overlapStart
+                }
+            }
+            if total > 0 {
+                result[playerId] = total
+            }
+        }
+        return result
     }
 
     // MARK: - Pitch Management
 
     func addPlayerToPitch(_ playerId: UUID, gameId: UUID) {
         if playersOnPitch[gameId] == nil { playersOnPitch[gameId] = [] }
+        let time = currentMatchTime(gameId: gameId)
+        openStint(playerId: playerId, gameId: gameId, at: time)
         playersOnPitch[gameId]?.insert(playerId)
     }
 
     func removePlayerFromPitch(_ playerId: UUID, gameId: UUID) {
-        // Bank the current window before removing so time is not lost.
-        if let gameTimer = resolveGameTimer(for: gameId),
-           let ids = playersOnPitch[gameId], !ids.isEmpty {
-            bankCurrentWindow(gameId: gameId, playerIds: ids, quarter: gameTimer.currentQuarter)
-        }
+        let time = currentMatchTime(gameId: gameId)
+        closeStint(playerId: playerId, gameId: gameId, at: time)
         playersOnPitch[gameId]?.remove(playerId)
-        // Re-open a window immediately for remaining players.
-        if let gameTimer = resolveGameTimer(for: gameId),
-           gameTimer.isRunning,
-           !(playersOnPitch[gameId]?.isEmpty ?? true) {
-            trackingStartDate[gameId] = Date()
-        }
     }
 
     func setPlayersOnPitch(_ playerIds: [UUID], gameId: UUID) {
-        // Bank the current window before the roster changes.
-        if let gameTimer = resolveGameTimer(for: gameId),
-           let ids = playersOnPitch[gameId], !ids.isEmpty {
-            bankCurrentWindow(gameId: gameId, playerIds: ids, quarter: gameTimer.currentQuarter)
-        }
-        playersOnPitch[gameId] = Set(playerIds)
-        // Re-open a fresh window for the new roster if the timer is running.
-        if let gameTimer = resolveGameTimer(for: gameId),
-           gameTimer.isRunning, !playerIds.isEmpty {
-            trackingStartDate[gameId] = Date()
-        }
+        applyRosterChange(gameId: gameId, newPlayers: Set(playerIds))
     }
 
     func clearPitch(for gameId: UUID) {
-        if let gameTimer = resolveGameTimer(for: gameId),
-           let ids = playersOnPitch[gameId], !ids.isEmpty {
-            bankCurrentWindow(gameId: gameId, playerIds: ids, quarter: gameTimer.currentQuarter)
+        let time = currentMatchTime(gameId: gameId)
+        if let ids = playersOnPitch[gameId], !ids.isEmpty {
+            for playerId in ids {
+                closeStint(playerId: playerId, gameId: gameId, at: time)
+            }
         }
         playersOnPitch[gameId] = []
-        trackingStartDate[gameId] = nil
     }
 
     // MARK: - Game Tracking
 
     func track(game: Game) {
         trackedGames[game.id] = game
+        if playerStintsByGame[game.id] == nil {
+            loadStints(from: game)
+        }
     }
 
     // MARK: - UserDefaults Sync
@@ -219,78 +227,44 @@ class PlayerTimeService: ObservableObject {
         else { return }
 
         let playerIds = Set(savedPlayers.map { $0.playerId })
-        guard playersOnPitch[activeGameId] != playerIds else { return }
-
-        // Roster changed — bank the current window first.
-        if let gameTimer = resolveGameTimer(for: activeGameId),
-           let ids = playersOnPitch[activeGameId], !ids.isEmpty {
-            bankCurrentWindow(gameId: activeGameId, playerIds: ids, quarter: gameTimer.currentQuarter)
-        }
-        playersOnPitch[activeGameId] = playerIds
-        // Re-open the window immediately if the timer is running.
-        if let gameTimer = resolveGameTimer(for: activeGameId),
-           gameTimer.isRunning, !playerIds.isEmpty {
-            trackingStartDate[activeGameId] = Date()
-        }
+        applyRosterChange(gameId: activeGameId, newPlayers: playerIds)
     }
 
     // MARK: - Reset & Load
 
-    func resetTimes(for gameId: UUID, quarter: Int) {
-        bankedSeconds[gameId]?[quarter] = [:]
-        // Close any open window — a fresh start means old window is invalid.
-        trackingStartDate[gameId] = nil
-        // Re-open immediately if the timer is running.
-        if let gameTimer = resolveGameTimer(for: gameId), gameTimer.isRunning,
-           !(playersOnPitch[gameId]?.isEmpty ?? true) {
-            trackingStartDate[gameId] = Date()
+    func resetStints(for gameId: UUID) {
+        playerStintsByGame[gameId] = [:]
+    }
+
+    func moveToQuarter(_ newQuarter: Int, gameId: UUID, previousQuarter: Int) {
+        _ = newQuarter
+        _ = previousQuarter
+        guard let ids = playersOnPitch[gameId], !ids.isEmpty else { return }
+        let time = currentMatchTime(gameId: gameId)
+        for playerId in ids {
+            closeStint(playerId: playerId, gameId: gameId, at: time)
+            openStint(playerId: playerId, gameId: gameId, at: time)
         }
     }
 
-    func resetAllTimes(for gameId: UUID) {
-        bankedSeconds[gameId] = [:]
-        trackingStartDate[gameId] = nil
-        if let gameTimer = resolveGameTimer(for: gameId), gameTimer.isRunning,
-           !(playersOnPitch[gameId]?.isEmpty ?? true) {
-            trackingStartDate[gameId] = Date()
-        }
-    }
-
-    func loadTimes(from game: Game) {
+    func loadStints(from game: Game) {
         let gameId = game.id
-        bankedSeconds[gameId] = [:]
+        playerStintsByGame[gameId] = [:]
 
-        for (playerIdString, quarterTimes) in game.playerPlayTimes {
+        for (playerIdString, stints) in game.playerStints {
             guard let playerId = UUID(uuidString: playerIdString) else { continue }
-            for (quarterString, time) in quarterTimes {
-                guard let quarter = Int(quarterString) else { continue }
-                setBanked(time, playerId: playerId, gameId: gameId, quarter: quarter)
-            }
+            playerStintsByGame[gameId]?[playerId] = stints
         }
     }
 
-    // MARK: - Background Time Sync
-
-    /// Called when returning from background. The caller (PitchView) has already
-    /// computed how many wall-clock seconds elapsed while backgrounded. We close
-    /// the stale tracking window (which started before the background event and
-    /// would otherwise double-count that time), credit the caller-computed
-    /// seconds directly, then reopen a fresh window from now.
-    func addBackgroundTime(_ seconds: TimeInterval, gameId: UUID, quarter: Int) {
-        // Close the stale window without banking its wall-clock elapsed time
-        // (that time is already covered by the `seconds` parameter).
-        trackingStartDate[gameId] = nil
-
-        guard let playerIds = playersOnPitch[gameId] else { return }
-        for playerId in playerIds {
-            let existing = bankedSeconds[gameId]?[quarter]?[playerId] ?? 0
-            setBanked(existing + seconds, playerId: playerId, gameId: gameId, quarter: quarter)
+    func persistStints(to game: Game) {
+        let gameId = game.id
+        let stintsByPlayer = playerStintsByGame[gameId] ?? [:]
+        var serialized: [String: [PlayerStint]] = [:]
+        for (playerId, stints) in stintsByPlayer {
+            serialized[playerId.uuidString] = stints
         }
-
-        // Re-open a fresh window from now.
-        if let gameTimer = resolveGameTimer(for: gameId), gameTimer.isRunning {
-            trackingStartDate[gameId] = Date()
-        }
+        game.playerStints = serialized
     }
 
     // MARK: - Helpers
