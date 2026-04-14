@@ -157,10 +157,17 @@ struct PitchView: View {
     // Game settings for quarter duration
     @State private var gameSettings = GameSettings()
     
+    private var playableGames: [Game] {
+        activeGames.filter { !$0.isScheduled || $0.isGameActive }
+    }
+
     // Current active game (if any)
     private var currentGame: Game? {
-        guard !activeGameId.isEmpty else { return activeGames.first }
-        return activeGames.first { $0.id.uuidString == activeGameId } ?? activeGames.first
+        guard !playableGames.isEmpty else { return nil }
+        if !activeGameId.isEmpty, let game = playableGames.first(where: { $0.id.uuidString == activeGameId }) {
+            return game
+        }
+        return playableGames.first
     }
     
     private var selectedTeam: Team? {
@@ -199,7 +206,7 @@ struct PitchView: View {
     @State private var selectedPitchPlayerForSwap: PitchPlayer? = nil
     
     // Bench collapse state
-    @State private var isBenchCollapsed: Bool = false
+    @AppStorage("pitchBenchCollapsed") private var isBenchCollapsed: Bool = false
     
     // Shared player time service (continues running when navigating away)
     @ObservedObject private var playerTimeService = PlayerTimeService.shared
@@ -294,16 +301,12 @@ struct PitchView: View {
                 }
                 
                 // MARK: - Main Content
-                HStack(alignment: .top, spacing: isCompact ? 8 : 16) {
-                    // MARK: Left Panel - Team & Squad
-                    leftPanel(game: game, gameTimer: gameTimer, playerTimes: playerTimes)
-                        .frame(width: leftPanelWidth)
-                        .frame(maxHeight: .infinity)
-                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isBenchCollapsed)
-                    
-                    // MARK: Pitch Area
+                VStack(spacing: isCompact ? 10 : 16) {
                     pitchArea(game: game, gameTimer: gameTimer, playerTimes: playerTimes)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    bottomBenchPanel(game: game, gameTimer: gameTimer, playerTimes: playerTimes)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isBenchCollapsed)
                 }
                 .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.horizontal, isCompact ? 12 : 20)
@@ -386,7 +389,7 @@ struct PitchView: View {
             loadQuarterTimes()
             loadGameSettings()
             syncPlayersOnPitchWithService()
-            if activeGameId.isEmpty {
+            if activeGameId != game.id.uuidString {
                 activeGameId = game.id.uuidString
             }
             // Track initial game ID
@@ -406,8 +409,9 @@ struct PitchView: View {
         }
         .onChange(of: activeGames) { _, newGames in
             // Sync activeQuarterDuration when games list changes
-            if let updatedGame = newGames.first(where: { $0.id.uuidString == activeGameId }) ?? newGames.first {
-                if activeGameId.isEmpty {
+            let eligibleGames = newGames.filter { !$0.isScheduled || $0.isGameActive }
+            if let updatedGame = eligibleGames.first(where: { $0.id.uuidString == activeGameId }) ?? eligibleGames.first {
+                if activeGameId != updatedGame.id.uuidString {
                     activeGameId = updatedGame.id.uuidString
                 }
                 let timer = GameTimerService.shared.timer(for: updatedGame)
@@ -458,16 +462,12 @@ struct PitchView: View {
                 .padding(.top, 8)
 
                 // MARK: - Main Content
-                HStack(alignment: .top, spacing: isCompact ? 8 : 16) {
-                    // MARK: Left Panel - Team & Squad
-                    leftPanelNoGame()
-                        .frame(width: leftPanelWidth)
-                        .frame(maxHeight: .infinity)
-                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isBenchCollapsed)
-
-                    // MARK: Pitch Area
+                VStack(spacing: isCompact ? 10 : 16) {
                     pitchAreaNoGame()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    bottomBenchPanelNoGame()
+                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isBenchCollapsed)
                 }
                 .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.horizontal, isCompact ? 12 : 20)
@@ -825,28 +825,73 @@ extension PitchView {
     }
     
     // MARK: Left Panel
-    private func leftPanel(game: Game, gameTimer: GameTimer, playerTimes: [UUID: TimeInterval]) -> some View {
+    private var benchCount: Int {
+        filteredPlayers.filter { p in
+            !pitchPlayers.contains { $0.player.id == p.id }
+        }.count
+    }
+
+    private func bottomBenchPanel(game: Game, gameTimer: GameTimer, playerTimes: [UUID: TimeInterval]) -> some View {
         Group {
             if isBenchCollapsed {
-                // Collapsed state — slim tab with expand button and bench count badge
-                collapsedBenchTab
+                collapsedBenchBar
             } else {
-                // Expanded state — full bench panel
                 expandedBenchPanel(game: game, gameTimer: gameTimer, playerTimes: playerTimes)
             }
         }
     }
 
-    private func leftPanelNoGame() -> some View {
+    private func bottomBenchPanelNoGame() -> some View {
         Group {
             if isBenchCollapsed {
-                // Collapsed state — slim tab with expand button and bench count badge
-                collapsedBenchTab
+                collapsedBenchBar
             } else {
-                // Expanded state — full bench panel
                 expandedBenchPanelNoGame()
             }
         }
+    }
+
+    private var collapsedBenchBar: some View {
+        HStack(spacing: 12) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    isBenchCollapsed = false
+                }
+            } label: {
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .padding(8)
+                    .background(Circle().fill(Color(.systemGray5)))
+            }
+            .buttonStyle(.plain)
+
+            Text("Bench")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundColor(.secondary)
+
+            if benchCount > 0 {
+                Text("\(benchCount)")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.blue))
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 8, x: 0, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(.systemGray5), lineWidth: 1)
+        )
     }
     
     private var collapsedBenchTab: some View {
@@ -972,14 +1017,15 @@ extension PitchView {
                 .padding(.horizontal, 12)
             
             // Players list
-            ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: isCompact ? 6 : 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: isCompact ? 8 : 12) {
                     let availablePlayers = filteredPlayers.filter { p in
                         !pitchPlayers.contains { $0.player.id == p.id }
                     }
-                    
+
                     if availablePlayers.isEmpty {
                         emptySquadView
+                            .frame(width: 140)
                     } else {
                         ForEach(availablePlayers) { player in
                             DraggablePlayerView(
@@ -989,16 +1035,15 @@ extension PitchView {
                                 isCompact: isCompact,
                                 showTimer: showPlayerTimers
                             )
-                                .transition(.asymmetric(
-                                    insertion: .scale(scale: 0.8).combined(with: .opacity),
-                                    removal: .scale(scale: 0.8).combined(with: .opacity)
-                                ))
+                            .transition(.asymmetric(
+                                insertion: .scale(scale: 0.8).combined(with: .opacity),
+                                removal: .scale(scale: 0.8).combined(with: .opacity)
+                            ))
                         }
                     }
                 }
-                .padding(.top, isCompact ? 8 : 12)
-                .padding(.bottom, isCompact ? 60 : 80)
-                .padding(.horizontal, isCompact ? 2 : 4)
+                .padding(.horizontal, isCompact ? 10 : 14)
+                .padding(.vertical, isCompact ? 8 : 12)
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: pitchPlayers.count)
             }
             
@@ -1102,14 +1147,15 @@ extension PitchView {
                 .padding(.horizontal, 12)
 
             // Players list
-            ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: isCompact ? 6 : 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: isCompact ? 8 : 12) {
                     let availablePlayers = filteredPlayers.filter { p in
                         !pitchPlayers.contains { $0.player.id == p.id }
                     }
 
                     if availablePlayers.isEmpty {
                         emptySquadView
+                            .frame(width: 140)
                     } else {
                         ForEach(availablePlayers) { player in
                             DraggablePlayerView(
@@ -1119,16 +1165,15 @@ extension PitchView {
                                 isCompact: isCompact,
                                 showTimer: showPlayerTimers
                             )
-                                .transition(.asymmetric(
-                                    insertion: .scale(scale: 0.8).combined(with: .opacity),
-                                    removal: .scale(scale: 0.8).combined(with: .opacity)
-                                ))
+                            .transition(.asymmetric(
+                                insertion: .scale(scale: 0.8).combined(with: .opacity),
+                                removal: .scale(scale: 0.8).combined(with: .opacity)
+                            ))
                         }
                     }
                 }
-                .padding(.top, isCompact ? 8 : 12)
-                .padding(.bottom, isCompact ? 60 : 80)
-                .padding(.horizontal, isCompact ? 2 : 4)
+                .padding(.horizontal, isCompact ? 10 : 14)
+                .padding(.vertical, isCompact ? 8 : 12)
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: pitchPlayers.count)
             }
 
