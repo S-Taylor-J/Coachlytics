@@ -67,6 +67,13 @@ struct HomeView: View {
     private var seasonStats: SeasonStats {
         calculateSeasonStats()
     }
+
+    private var nextScheduledGame: Game? {
+        games
+            .filter { $0.isScheduled && $0.date >= Date() }
+            .sorted { $0.date < $1.date }
+            .first
+    }
     
     private var upcomingEvents: [CalendarEvent] {
         getUpcomingEvents()
@@ -143,60 +150,80 @@ struct HomeView: View {
     
     // MARK: - Background
     private var backgroundGradient: some View {
-        LinearGradient(
-            colors: colorScheme == .dark
-                ? [Color(.systemBackground), Color(.systemGray6)]
-                : [Color(.systemGray6).opacity(0.5), Color(.systemBackground)],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        Color(colorScheme == .dark ? brandMidnight : Color(red: 0.97, green: 0.98, blue: 1.0))
     }
     
     // MARK: - Welcome Header
     private var welcomeHeader: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(greetingText)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-                
-                if let team = myTeam {
-                    Text(team.name)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                } else {
-                    Text("My Team")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(greetingText)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+
+                    Text(myTeam?.name ?? "My Team")
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+
+                    Text("\(teamPlayers.count) players")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.85))
                 }
-                
-                Text("\(teamPlayers.count) players")
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundColor(.blue)
-            }
-            
-            Spacer()
-            
-            // Team badge
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.blue, .purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [brandAccent, brandAccentSoft],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .frame(width: 56, height: 56)
-                
-                Image(systemName: "sportscourt.fill")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+
+                    Image(systemName: "sportscourt.fill")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(.white)
+                        .shadow(color: brandAccent.opacity(0.6), radius: 6, x: 0, y: 2)
+                }
+            }
+
+            HStack(spacing: 10) {
+                statChip(label: "Record", value: "\(seasonStats.wins)-\(seasonStats.draws)-\(seasonStats.losses)")
+                statChip(label: "Win Rate", value: "\(seasonStats.winRate)%")
+            }
+
+            if let nextGame = nextScheduledGame {
+                HStack(spacing: 8) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Next: \(nextGame.opponentName)")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    Text(nextGame.date.formatted(date: .abbreviated, time: .shortened))
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.12))
+                )
             }
         }
-        .padding(16)
+        .padding(18)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(colorScheme == .dark ? brandNavy : Color(red: 0.18, green: 0.20, blue: 0.26))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(brandAccent.opacity(colorScheme == .dark ? 0.5 : 0.35), lineWidth: 1)
+                )
+            .shadow(color: brandAccent.opacity(colorScheme == .dark ? 0.32 : 0.22), radius: 18, x: 0, y: 10)
         )
     }
     
@@ -211,39 +238,67 @@ struct HomeView: View {
     
     // MARK: - Quick Stats Section
     private var quickStatsSection: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            QuickStatCard(
-                title: "Season Record",
-                value: "\(seasonStats.wins)-\(seasonStats.draws)-\(seasonStats.losses)",
-                subtitle: "\(seasonStats.winRate)% win rate",
-                icon: "trophy.fill",
-                gradientColors: [.yellow, .orange]
-            )
-            
-            QuickStatCard(
-                title: "Games Played",
-                value: "\(completedGames.count)",
-                subtitle: "\(activeGames.count) active",
-                icon: "sportscourt.fill",
-                gradientColors: [.green, .mint]
-            )
-            
-            QuickStatCard(
-                title: "Goals Scored",
-                value: "\(seasonStats.goalsFor)",
-                subtitle: "\(seasonStats.goalsAgainst) conceded",
-                icon: "soccerball",
-                gradientColors: [.blue, .cyan]
-            )
-            
-            QuickStatCard(
-                title: "Squad Size",
-                value: "\(teamPlayers.count)",
-                subtitle: "players",
-                icon: "person.3.fill",
-                gradientColors: [.purple, .pink]
-            )
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                sectionHeader(title: "Season Snapshot", subtitle: "Team overview")
+
+                Spacer()
+
+                Button {
+                    showTeamStats = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chart.bar.doc.horizontal")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("Team Stats")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    }
+                    .foregroundColor(brandAccent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(brandAccent.opacity(0.12))
+                    )
+                }
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                QuickStatCard(
+                    title: "Season Record",
+                    value: "\(seasonStats.wins)-\(seasonStats.draws)-\(seasonStats.losses)",
+                    subtitle: "\(seasonStats.winRate)% win rate",
+                    icon: "",
+                    gradientColors: [.yellow, .yellow]
+                )
+
+                QuickStatCard(
+                    title: "Games Played",
+                    value: "\(completedGames.count)",
+                    subtitle: "\(activeGames.count) active",
+                    icon: "",
+                    gradientColors: [.green, .green]
+                )
+
+                QuickStatCard(
+                    title: "Goals Scored",
+                    value: "\(seasonStats.goalsFor)",
+                    subtitle: "\(seasonStats.goalsAgainst) conceded",
+                    icon: "",
+                    gradientColors: [.blue, .blue]
+                )
+
+                QuickStatCard(
+                    title: "Squad Size",
+                    value: "\(teamPlayers.count)",
+                    subtitle: "players",
+                    icon: "",
+                    gradientColors: [.purple, .purple]
+                )
+            }
         }
+        .padding(16)
+        .background(cardSurface(accent: brandAccent))
     }
     
     // MARK: - Active Game Alert
@@ -290,14 +345,10 @@ struct HomeView: View {
                             .foregroundColor(.secondary)
                     }
                     .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-                    )
+                    .background(cardSurface(accent: .green))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.green.opacity(0.3), lineWidth: 2)
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.green.opacity(0.35), lineWidth: 1.5)
                     )
                 }
             }
@@ -308,26 +359,7 @@ struct HomeView: View {
     private var calendarSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                HStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.red, .orange],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 28, height: 28)
-                        
-                        Image(systemName: "calendar")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    
-                    Text("Schedule")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                }
+                sectionHeader(title: "Schedule", subtitle: "Training and matches")
                 
                 Spacer()
                 
@@ -340,12 +372,12 @@ struct HomeView: View {
                         Text("Add Note")
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(brandAccent)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(
                         Capsule()
-                            .fill(Color.blue.opacity(0.1))
+                            .fill(brandAccent.opacity(0.12))
                     )
                 }
             }
@@ -441,11 +473,7 @@ struct HomeView: View {
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-        )
+        .background(cardSurface(accent: .orange))
     }
     
     private var formattedSelectedDate: String {
@@ -457,30 +485,7 @@ struct HomeView: View {
     // MARK: - Upcoming Events
     private var upcomingEventsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.purple, .indigo],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 28, height: 28)
-                        
-                        Image(systemName: "clock.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    
-                    Text("Upcoming")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                }
-                
-                Spacer()
-            }
+            sectionHeader(title: "Upcoming", subtitle: "Next 14 days")
             
             if upcomingEvents.isEmpty {
                 HStack {
@@ -503,62 +508,34 @@ struct HomeView: View {
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-        )
+        .background(cardSurface(accent: .purple))
     }
     
     // MARK: - Player Stats Section
     private var playerStatsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                HStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.cyan, .blue],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 28, height: 28)
-                        
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Player Stats")
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        Text("Tap a player for details")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                }
+                sectionHeader(title: "Player Stats", subtitle: "Tap a player for details")
                 
                 Spacer()
                 
-                Button {
-                    showTeamStats = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chart.bar.doc.horizontal")
-                            .font(.system(size: 11, weight: .bold))
-                        Text("Team Stats")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    }
-                    .foregroundColor(.blue)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color.blue.opacity(0.1))
-                    )
-                }
+                // Button {
+                //     showTeamStats = true
+                // } label: {
+                //     HStack(spacing: 4) {
+                //         Image(systemName: "chart.bar.doc.horizontal")
+                //             .font(.system(size: 11, weight: .bold))
+                //         Text("Team Stats")
+                //             .font(.system(size: 12, weight: .semibold, design: .rounded))
+                //     }
+                //     .foregroundColor(brandAccent)
+                //     .padding(.horizontal, 12)
+                //     .padding(.vertical, 6)
+                //     .background(
+                //         Capsule()
+                //             .fill(brandAccent.opacity(0.12))
+                //     )
+                // }
             }
             
             if teamPlayers.isEmpty {
@@ -594,37 +571,14 @@ struct HomeView: View {
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-        )
+        .background(cardSurface(accent: .cyan))
     }
     
     // MARK: - Recent Results Section
     private var recentResultsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                HStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.orange, .red],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 28, height: 28)
-                        
-                        Image(systemName: "flag.checkered")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    
-                    Text("Recent Results")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                }
+                sectionHeader(title: "Recent Results", subtitle: "Last 5 games")
                 
                 Spacer()
                 
@@ -634,7 +588,7 @@ struct HomeView: View {
                     } label: {
                         Text("See All")
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundColor(.blue)
+                            .foregroundColor(brandAccent)
                     }
                 }
             }
@@ -662,40 +616,13 @@ struct HomeView: View {
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-        )
+        .background(cardSurface(accent: .orange))
     }
     
     // MARK: - Season Performance Section
     private var seasonPerformanceSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                HStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.green, .mint],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 28, height: 28)
-                        
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    
-                    Text("Season Performance")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                }
-                
-                Spacer()
-            }
+            sectionHeader(title: "Season Performance", subtitle: "Form and averages")
             
             // Form streak
             if !completedGames.isEmpty {
@@ -759,10 +686,65 @@ struct HomeView: View {
             }
         }
         .padding(16)
+        .background(cardSurface(accent: .green))
+    }
+
+    // MARK: - Styling Helpers
+    private var brandAccent: Color {
+        Color(red: 0.42, green: 0.70, blue: 1.0)
+    }
+
+    private var brandAccentSoft: Color {
+        Color(red: 0.55, green: 0.80, blue: 1.0)
+    }
+
+    private var brandNavy: Color {
+        Color(red: 0.08, green: 0.10, blue: 0.16)
+    }
+
+    private var brandMidnight: Color {
+        Color(red: 0.05, green: 0.06, blue: 0.09)
+    }
+
+    private func cardSurface(accent: Color) -> some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+            )
+            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
+    }
+
+    private func sectionHeader(title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+            Text(subtitle)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+    }
+
+
+    private func statChip(label: String, value: String) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundColor(.white.opacity(0.7))
+            Text(value)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            Capsule()
+                .fill(Color.white.opacity(0.12))
         )
     }
     

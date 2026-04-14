@@ -69,8 +69,12 @@ struct GameStatsRow: View {
         }
         .padding(10)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemGray6).opacity(0.5))
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                )
         )
     }
 }

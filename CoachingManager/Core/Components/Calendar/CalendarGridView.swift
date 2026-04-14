@@ -162,16 +162,10 @@ struct CalendarDayCell: View {
                 ZStack {
                     if isSelected {
                         Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.blue, .purple],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .fill(Color.accentColor)
                     } else if isToday {
                         Circle()
-                            .stroke(Color.blue, lineWidth: 2)
+                            .stroke(Color.accentColor, lineWidth: 2)
                     }
                 }
             )

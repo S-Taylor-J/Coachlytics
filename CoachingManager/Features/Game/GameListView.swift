@@ -888,9 +888,12 @@ struct NewGameSheet: View {
             _quarterSeconds = State(initialValue: totalSeconds % 60)
         } else {
             _quarters = State(initialValue: 4)
-            _quarterMinutes = State(initialValue: 15)
-            _quarterSeconds = State(initialValue: 0)
+            _quarterMinutes = State(initialValue: 17)
+            _quarterSeconds = State(initialValue: 30)
         }
+
+        _quarterMinutes = State(initialValue: 17)
+        _quarterSeconds = State(initialValue: 30)
     }
     
     var body: some View {

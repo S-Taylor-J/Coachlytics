@@ -19,24 +19,26 @@ struct QuickStatCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: gradientColors,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+            if !icon.isEmpty {
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: gradientColors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .frame(width: 32, height: 32)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+
+                        Image(systemName: icon)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+
+                    Spacer()
                 }
-                
-                Spacer()
             }
             
             VStack(alignment: .leading, spacing: 2) {
@@ -53,11 +55,16 @@ struct QuickStatCard: View {
                     .foregroundColor(.secondary.opacity(0.7))
             }
         }
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.06), radius: 6, x: 0, y: 3)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.white.opacity(0.7))
+                )
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.08), radius: 6, x: 0, y: 3)
         )
     }
 }

@@ -22,29 +22,22 @@ struct PlayerQuickCard: View {
             onTap()
         }) {
             VStack(spacing: 10) {
-                // Player number badge
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.blue, .cyan],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(Color.accentColor)
                         .frame(width: 44, height: 44)
-                    
+
                     Text("\(player.number)")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
-                
+
                 VStack(spacing: 2) {
                     Text(player.name.split(separator: " ").first.map(String.init) ?? player.name)
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundColor(.primary)
                         .lineLimit(1)
-                    
+
                     Text("\(stats.goals) goals")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.secondary)
@@ -53,9 +46,13 @@ struct PlayerQuickCard: View {
             .frame(width: 80)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.06), radius: 4, x: 0, y: 2)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.white.opacity(0.7))
+                    )
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.08), radius: 6, x: 0, y: 3)
             )
         }
     }
