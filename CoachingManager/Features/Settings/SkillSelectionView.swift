@@ -12,6 +12,7 @@ struct SkillSelectionView: View {
     @Binding var selectedSkills: Set<String>
     @Environment(\.dismiss) private var dismiss
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         List {
@@ -58,6 +59,8 @@ struct SkillSelectionView: View {
                 .padding(.vertical, 8)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(backgroundColor)
         .navigationTitle("Select Skills")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -67,5 +70,9 @@ struct SkillSelectionView: View {
                 }
             }
         }
+    }
+
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
 }

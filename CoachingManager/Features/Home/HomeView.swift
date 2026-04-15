@@ -150,7 +150,7 @@ struct HomeView: View {
     
     // MARK: - Background
     private var backgroundGradient: some View {
-        Color(colorScheme == .dark ? brandMidnight : Color(red: 0.97, green: 0.98, blue: 1.0))
+        colorScheme == .dark ? brandMidnight : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
     
     // MARK: - Welcome Header

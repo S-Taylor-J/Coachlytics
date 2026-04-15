@@ -8,6 +8,7 @@ import SwiftUI
 
 struct CustomTabBar: View {
     @Binding var selectedTab: Tab
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         
@@ -21,8 +22,12 @@ struct CustomTabBar: View {
         .padding(.top, 12)
         .padding(.horizontal)
         .padding(.bottom, bottomSafeArea())
-        .background(Color(.systemBackground)
-            .shadow(color: .black.opacity(0.15), radius: 6, y: -3))
+        .background(
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .background(backgroundColor.opacity(colorScheme == .dark ? 0.9 : 0.95))
+                .shadow(color: .black.opacity(0.15), radius: 6, y: -3)
+        )
     }
     
     private func tabItem(icon: String, tab: Tab) -> some View {
@@ -45,5 +50,9 @@ struct CustomTabBar: View {
             return 12
         }
         return max(window.safeAreaInsets.bottom, 12)
+    }
+
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
 }
