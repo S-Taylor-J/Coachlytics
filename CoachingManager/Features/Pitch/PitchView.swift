@@ -1047,30 +1047,6 @@ extension PitchView {
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: pitchPlayers.count)
             }
             
-            // Drop hint footer
-            if !pitchPlayers.isEmpty {
-                VStack(spacing: 4) {
-                    Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.clear, Color(.systemGray4), .clear],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(height: 1)
-                        .padding(.horizontal, 12)
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.left.to.line")
-                            .font(.system(size: 9))
-                        Text("Drag to bench")
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundColor(.secondary.opacity(0.6))
-                    .padding(.vertical, 8)
-                }
-            }
         }
         .background(
             RoundedRectangle(cornerRadius: 16)
@@ -1177,30 +1153,6 @@ extension PitchView {
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: pitchPlayers.count)
             }
 
-            // Drop hint footer
-            if !pitchPlayers.isEmpty {
-                VStack(spacing: 4) {
-                    Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.clear, Color(.systemGray4), .clear],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(height: 1)
-                        .padding(.horizontal, 12)
-
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.left.to.line")
-                            .font(.system(size: 9))
-                        Text("Drag to bench")
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundColor(.secondary.opacity(0.6))
-                    .padding(.vertical, 8)
-                }
-            }
         }
         .background(
             RoundedRectangle(cornerRadius: 16)
