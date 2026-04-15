@@ -132,31 +132,35 @@ struct GameListView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Compact Filter Bar
-                filterBarCompact
-                
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 16) {
-                        // Scheduled Games Section
-                        if !scheduledGames.isEmpty && !hasActiveFilters {
-                            scheduledGamesSection
+            ZStack {
+                backgroundColor
+                    .ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    // Compact Filter Bar
+                    filterBarCompact
+
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 16) {
+                            // Scheduled Games Section
+                            if !scheduledGames.isEmpty && !hasActiveFilters {
+                                scheduledGamesSection
+                            }
+
+                            // Active Games Section
+                            if !activeGames.isEmpty && !hasActiveFilters {
+                                activeGamesSection
+                            }
+
+                            // All Games Section
+                            allGamesSection
                         }
-                        
-                        // Active Games Section
-                        if !activeGames.isEmpty && !hasActiveFilters {
-                            activeGamesSection
-                        }
-                        
-                        // All Games Section
-                        allGamesSection
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 100)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 100)
                 }
             }
-            .background(Color(.systemGroupedBackground))
             .navigationTitle("Games")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -212,8 +216,12 @@ struct GameListView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(.systemGray5).opacity(0.5))
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(backgroundColor)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.35), lineWidth: 1)
+                        )
                 )
             }
             .padding(.horizontal, 16)
@@ -328,7 +336,7 @@ struct GameListView: View {
                 .padding(.bottom, 12)
             }
         }
-        .background(Color(.systemBackground))
+        .background(backgroundColor)
     };
     // MARK: - Active Games\n
     private var scheduledGames: [Game] {
@@ -522,8 +530,7 @@ struct GameListView: View {
         .padding(.vertical, 48)
         .padding(.horizontal, 24)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.secondarySystemGroupedBackground))
+            cardSurface(accent: brandAccent)
         )
     }
     
@@ -549,8 +556,7 @@ struct GameListView: View {
         .padding(.vertical, 48)
         .padding(.horizontal, 24)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.secondarySystemGroupedBackground))
+            cardSurface(accent: brandAccent)
         )
     }
     
@@ -560,6 +566,28 @@ struct GameListView: View {
         
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
+    }
+
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
+    }
+
+    private var brandAccent: Color {
+        Color(red: 0.42, green: 0.70, blue: 1.0)
+    }
+
+    private func cardSurface(accent: Color) -> some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+            )
+            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
     }
 }
 
@@ -643,13 +671,7 @@ struct ActiveGameCard: View {
             }
             .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.green.opacity(0.3), lineWidth: 2)
+                CardSurface(accent: .green)
             )
         }
         .buttonStyle(.plain)
@@ -765,13 +787,7 @@ struct ScheduledGameCard: View {
             }
             .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.orange.opacity(0.3), lineWidth: 2)
+                CardSurface(accent: .orange)
             )
         }
         .buttonStyle(.plain)
@@ -844,13 +860,7 @@ struct GameHistoryRow: View {
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.08), radius: 8, x: 0, y: 4)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color(.systemGray5), lineWidth: 1)
+            CardSurface(accent: .blue)
         )
     }
 }
@@ -1682,7 +1692,7 @@ enum FilterChipStyle {
     var backgroundColor: Color {
         switch self {
         case .secondary:
-            return Color(.systemGray5)
+            return Color.clear
         case .active:
             return Color.blue
         case .colored(let color):
@@ -1706,6 +1716,8 @@ struct FilterChip: View {
     let icon: String?
     let isActive: Bool
     let style: FilterChipStyle
+
+    @Environment(\.colorScheme) private var colorScheme
     
     init(label: String, icon: String? = nil, isActive: Bool = false, style: FilterChipStyle = .secondary) {
         self.label = label
@@ -1715,6 +1727,10 @@ struct FilterChip: View {
     }
     
     var body: some View {
+        let chipBackground = style.backgroundColor == Color.clear
+            ? Color.white.opacity(colorScheme == .dark ? 0.06 : 0.7)
+            : style.backgroundColor
+
         HStack(spacing: 5) {
             if let icon = icon {
                 Image(systemName: icon)
@@ -1735,13 +1751,38 @@ struct FilterChip: View {
         .padding(.vertical, 8)
         .background(
             Capsule()
-                .fill(style.backgroundColor)
+                .fill(chipBackground)
         )
         .foregroundColor(style.foregroundColor)
         .overlay(
             Capsule()
-                .strokeBorder(Color(.systemGray4).opacity(style.backgroundColor == Color(.systemGray5) ? 0.5 : 0), lineWidth: 0.5)
+                .strokeBorder(
+                    style.backgroundColor == Color.clear
+                        ? Color.white.opacity(colorScheme == .dark ? 0.08 : 0.35)
+                        : Color.clear,
+                    lineWidth: 1
+                )
         )
+    }
+}
+
+private struct CardSurface: View {
+    let accent: Color
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+            )
+            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
     }
 }
 

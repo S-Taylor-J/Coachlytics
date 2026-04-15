@@ -154,7 +154,7 @@ struct GameDetailView: View {
     
     var body: some View {
         ZStack {
-            backgroundGradient
+            backgroundColor
                 .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
@@ -295,13 +295,11 @@ struct GameDetailView: View {
     
     // MARK: - Background
     private var backgroundGradient: some View {
-        LinearGradient(
-            colors: colorScheme == .dark
-                ? [Color(.systemBackground), Color(.systemGray6)]
-                : [Color(.systemGray6).opacity(0.5), Color(.systemBackground)],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        backgroundColor
+    }
+
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
     
     // MARK: - Game Info Header
@@ -436,9 +434,7 @@ struct GameDetailView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            GameDetailCardSurface(accent: .purple)
         )
     }
     
@@ -579,9 +575,7 @@ struct GameDetailView: View {
         }
         .padding(.top, 16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            GameDetailCardSurface(accent: .green)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
@@ -652,9 +646,7 @@ struct GameDetailView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            GameDetailCardSurface(accent: .blue)
         )
     }
     
@@ -723,7 +715,7 @@ struct GameDetailView: View {
                         .frame(width: 32, height: 32)
                         .background(
                             Circle()
-                                .fill(Color(.systemGray6))
+                                .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.8))
                         )
                 }
             }
@@ -815,9 +807,7 @@ struct GameDetailView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            GameDetailCardSurface(accent: .orange)
         )
     }
     
@@ -1053,8 +1043,12 @@ struct GameClockCard2: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(.systemGray6))
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.white.opacity(0.7))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.35), lineWidth: 1)
+                        )
                 )
                 
                 // Control buttons
@@ -1165,9 +1159,7 @@ struct GameClockCard2: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            GameDetailCardSurface(accent: .green)
         )
     }
 }
@@ -1286,7 +1278,7 @@ struct ScoreCard2: View {
                                 .padding(10)
                                 .background(
                                     Circle()
-                                        .fill(Color(.systemGray5))
+                                        .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.8))
                                 )
                         }
                     }
@@ -1327,9 +1319,7 @@ struct ScoreCard2: View {
             .padding(.horizontal, 16)
         }
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            GameDetailCardSurface(accent: isCompleted ? resultColor : .blue)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -1398,8 +1388,7 @@ struct AnalyticsStatCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemGray6))
+            GameDetailCardSurface(accent: color, cornerRadius: 12)
         )
     }
 }
@@ -1811,9 +1800,7 @@ struct EventCardView: View {
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isHighlighted)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.08), radius: 6, x: 0, y: 3)
+            GameDetailCardSurface(accent: teamColor, cornerRadius: 14)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
@@ -2007,9 +1994,7 @@ struct EventListRowView: View {
         }
         .padding(10)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 4, x: 0, y: 2)
+            GameDetailCardSurface(accent: teamColor, cornerRadius: 10)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
@@ -2208,6 +2193,27 @@ struct QuickStatBadge: View {
                 .textCase(.uppercase)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+private struct GameDetailCardSurface: View {
+    let accent: Color
+    var cornerRadius: CGFloat = 16
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+            )
+            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
     }
 }
 

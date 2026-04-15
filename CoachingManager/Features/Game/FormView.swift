@@ -176,7 +176,7 @@ struct MultiStepFormView: View {
                         .padding(.bottom, 16)
                 }
             }
-            .background(backgroundGradient.ignoresSafeArea())
+            .background(backgroundColor.ignoresSafeArea())
             .navigationTitle(getStepTitle())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -195,13 +195,11 @@ struct MultiStepFormView: View {
     
     // MARK: - Background
     private var backgroundGradient: some View {
-        LinearGradient(
-            colors: colorScheme == .dark
-                ? [Color(.systemBackground), Color(.systemGray6)]
-                : [Color(.systemGray6).opacity(0.3), Color(.systemBackground)],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        backgroundColor
+    }
+
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
     
     // MARK: - Progress Bar
@@ -235,8 +233,12 @@ struct MultiStepFormView: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemGray6))
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.white.opacity(0.8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.35), lineWidth: 1)
+                    )
             )
         }
     }
@@ -423,13 +425,7 @@ struct EventTypeCard: View {
             }
             .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+                GameCardSurface(accent: isSelected ? color : .gray)
             )
         }
         .buttonStyle(.plain)
@@ -516,13 +512,7 @@ struct TeamCard: View {
             }
             .padding(20)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? color : Color.clear, lineWidth: 2)
+                GameCardSurface(accent: isSelected ? color : .gray)
             )
         }
         .buttonStyle(.plain)
@@ -567,9 +557,7 @@ struct PlayerSelectionStep: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            GameCardSurface(accent: .blue)
         )
     }
 }
@@ -696,9 +684,7 @@ struct PlayerSelectionWithSkipStep: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+            GameCardSurface(accent: .blue)
         )
     }
 }
@@ -749,13 +735,7 @@ struct GoalTypeStep: View {
                     }
                     .padding(14)
                     .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 4, x: 0, y: 2)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(selectedGoalType == type ? Color.yellow : Color.clear, lineWidth: 2)
+                        GameCardSurface(accent: selectedGoalType == type ? .yellow : .gray, cornerRadius: 14)
                     )
                 }
                 .buttonStyle(.plain)
@@ -887,8 +867,7 @@ struct InfractionDetailsStep: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemGray6).opacity(0.5))
+            GameCardSurface(accent: .orange)
         )
     }
 }
@@ -945,13 +924,7 @@ struct CircleResultStep: View {
                     }
                     .padding(14)
                     .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 4, x: 0, y: 2)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(selectedCircleResult == result ? Color.green : Color.clear, lineWidth: 2)
+                        GameCardSurface(accent: selectedCircleResult == result ? .green : .gray, cornerRadius: 14)
                     )
                 }
                 .buttonStyle(.plain)
@@ -1038,9 +1011,7 @@ struct GoalConfirmStep: View {
         }
         .padding(32)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 12, x: 0, y: 6)
+            GameCardSurface(accent: .yellow, cornerRadius: 20)
         )
         .onAppear {
             animateScale = true
@@ -1110,12 +1081,31 @@ struct TurnoverConfirmStep: View {
         }
         .padding(32)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 12, x: 0, y: 6)
+            GameCardSurface(accent: .red, cornerRadius: 20)
         )
         .onAppear {
             animateRotation = true
         }
+    }
+}
+
+private struct GameCardSurface: View {
+    let accent: Color
+    var cornerRadius: CGFloat = 16
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+            )
+            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
     }
 }

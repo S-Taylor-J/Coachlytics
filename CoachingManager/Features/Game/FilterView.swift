@@ -224,8 +224,12 @@ struct EventFilterChip: View {
     let icon: String
     let isActive: Bool
     let color: Color
+
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
+        let inactiveBackground = Color.white.opacity(colorScheme == .dark ? 0.06 : 0.7)
+
         HStack(spacing: 5) {
             Image(systemName: icon)
                 .font(.system(size: 11, weight: .medium))
@@ -242,12 +246,12 @@ struct EventFilterChip: View {
         .padding(.vertical, 8)
         .background(
             Capsule()
-                .fill(isActive ? color : Color(.systemGray5))
+                .fill(isActive ? color : inactiveBackground)
         )
         .foregroundColor(isActive ? .white : .primary)
         .overlay(
             Capsule()
-                .strokeBorder(Color(.systemGray4).opacity(isActive ? 0 : 0.5), lineWidth: 0.5)
+                .strokeBorder(isActive ? Color.clear : Color.white.opacity(colorScheme == .dark ? 0.08 : 0.35), lineWidth: 1)
         )
     }
 }
