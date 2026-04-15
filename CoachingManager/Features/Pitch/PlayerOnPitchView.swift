@@ -233,10 +233,18 @@ struct PlayerOnPitchView: View {
                         dragOffset = value.translation
                     }
                     
-                    // Check bench proximity
+                    // Check bench proximity (any edge)
                     let currentX = position.x + value.translation.width
+                    let currentY = position.y + value.translation.height
+                    let leftThreshold = edgeMargin
+                    let topThreshold = edgeMargin
+                    let rightThreshold = edgeMargin - 10
+                    let bottomThreshold = edgeMargin - 16
                     let wasOverBench = isOverBench
-                    isOverBench = currentX < 20
+                    isOverBench = currentX < leftThreshold
+                        || currentX > pitchSize.width - rightThreshold
+                        || currentY < topThreshold
+                        || currentY > pitchSize.height - bottomThreshold
                     
                     // Haptic when crossing bench threshold
                     if wasOverBench != isOverBench {

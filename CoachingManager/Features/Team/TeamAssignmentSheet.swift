@@ -16,6 +16,7 @@ struct TeamAssignmentSheet: View, Identifiable {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Query(sort: \Team.name) private var teams: [Team]
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         NavigationStack {
@@ -42,6 +43,8 @@ struct TeamAssignmentSheet: View, Identifiable {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(backgroundColor)
             .navigationTitle("Add \(player.name) to Teams")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -52,6 +55,10 @@ struct TeamAssignmentSheet: View, Identifiable {
                 }
             }
         }
+    }
+
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
     
     private func toggleTeamMembership(team: Team) {

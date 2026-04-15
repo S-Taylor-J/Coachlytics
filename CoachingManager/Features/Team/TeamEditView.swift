@@ -2,9 +2,6 @@
 //  TeamEdit.swift
 //  CoachingManager
 //
-//  Created by Taylor Santos on 06/01/2026.
-//
-//
 
 import Foundation
 import SwiftUI
@@ -133,6 +130,9 @@ struct AddEditView: View {
                             } label: {
                                 PlayerRow(player: player)
                             }
+                            .listRowBackground(backgroundColor)
+                            .listRowSeparator(.visible)
+                            .listRowSeparatorTint(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.18))
                             .contextMenu {
                                 Button {
                                     playerToEdit = player
@@ -169,10 +169,11 @@ struct AddEditView: View {
                         }
                     }
                     .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                     .contentMargins(.bottom, 50, for: .scrollContent)
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .background(backgroundColor)
             .navigationTitle("Players")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -264,8 +265,12 @@ struct AddEditView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(.systemGray5).opacity(0.5))
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(backgroundColor)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.35), lineWidth: 1)
+                        )
                 )
             }
             .padding(.horizontal, 16)
@@ -421,7 +426,7 @@ struct AddEditView: View {
                 .padding(.bottom, 12)
             }
         }
-        .background(Color(.systemBackground))
+        .background(Color.clear)
     }
     
     // MARK: - Team Header Section
@@ -431,15 +436,9 @@ struct AddEditView: View {
                 // Team Badge
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.purple, .purple.opacity(0.7)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(Color.accentColor)
                         .frame(width: 52, height: 52)
-                        .shadow(color: .purple.opacity(0.3), radius: 6, x: 0, y: 3)
+                        .shadow(color: Color.accentColor.opacity(0.3), radius: 6, x: 0, y: 3)
                     
                     Image(systemName: "person.3.fill")
                         .font(.system(size: 20, weight: .semibold))
@@ -472,20 +471,21 @@ struct AddEditView: View {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(Color.purple.opacity(0.12))
+                            .fill(Color.accentColor.opacity(0.12))
                             .frame(width: 44, height: 44)
                         
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.purple)
+                            .foregroundColor(.accentColor)
                     }
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
-            .background(Color(.systemBackground))
-            
+            .background(Color.clear)
+
             Divider()
+                .background(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.4))
         }
     }
     
@@ -499,26 +499,13 @@ struct AddEditView: View {
                 // Welcome Icon
                 ZStack {
                     Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [Color.purple.opacity(0.2), Color.purple.opacity(0)],
-                                center: .center,
-                                startRadius: 40,
-                                endRadius: 100
-                            )
-                        )
+                        .fill(Color.accentColor.opacity(0.15))
                         .frame(width: 200, height: 200)
                     
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.purple, .purple.opacity(0.7)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(Color.accentColor)
                         .frame(width: 100, height: 100)
-                        .shadow(color: .purple.opacity(0.4), radius: 16, x: 0, y: 8)
+                        .shadow(color: Color.accentColor.opacity(0.4), radius: 16, x: 0, y: 8)
                     
                     Image(systemName: "person.3.fill")
                         .font(.system(size: 40, weight: .semibold))
@@ -553,14 +540,10 @@ struct AddEditView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(
-                        LinearGradient(
-                            colors: [.purple, .purple.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                        Color.accentColor
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .shadow(color: .purple.opacity(0.4), radius: 8, x: 0, y: 4)
+                    .shadow(color: Color.accentColor.opacity(0.4), radius: 8, x: 0, y: 4)
                 }
                 .padding(.horizontal, 32)
                 .padding(.top, 8)
@@ -596,7 +579,7 @@ struct AddEditView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+        .background(backgroundColor)
     }
     
     private func featureCard(icon: String, title: String, description: String, color: Color) -> some View {
@@ -625,9 +608,7 @@ struct AddEditView: View {
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 6, x: 0, y: 2)
+            cardSurface(accent: color)
         )
     }
     
@@ -680,7 +661,7 @@ struct AddEditView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+        .background(backgroundColor)
     }
     
     private func PlayerRow(player: Player) -> some View {
@@ -688,18 +669,12 @@ struct AddEditView: View {
             // Player number badge
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.blue.opacity(0.15), Color.blue.opacity(0.08)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(Color.accentColor.opacity(0.15))
                     .frame(width: 48, height: 48)
                 
                 Text("\(player.number)")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.blue)
+                    .foregroundStyle(Color.accentColor)
             }
             
             VStack(alignment: .leading, spacing: 6) {
@@ -720,12 +695,12 @@ struct AddEditView: View {
                                     Text(position)
                                         .font(.system(size: 11, weight: .medium, design: .rounded))
                                 }
-                                .foregroundStyle(Color.blue)
+                                .foregroundStyle(Color.accentColor)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(
                                     Capsule()
-                                        .fill(Color.blue.opacity(0.12))
+                                        .fill(Color.accentColor.opacity(0.12))
                                 )
                             }
                             
@@ -733,12 +708,12 @@ struct AddEditView: View {
                             if player.positions.count > 2 {
                                 Text("+\(player.positions.count - 2)")
                                     .font(.system(size: 10, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(Color.blue.opacity(0.7))
+                                        .foregroundStyle(Color.accentColor.opacity(0.7))
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 4)
                                     .background(
                                         Capsule()
-                                            .strokeBorder(Color.blue.opacity(0.3), lineWidth: 1)
+                                            .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1)
                                     )
                             }
                             
@@ -802,7 +777,8 @@ struct AddEditView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.quaternary)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
         .contentShape(Rectangle())
     }
     
@@ -825,6 +801,24 @@ struct AddEditView: View {
             player.teams.remove(at: index)
         }
     }
+
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
+    }
+
+    private func cardSurface(accent: Color) -> some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+            )
+            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
+    }
 }
 
 #Preview {
@@ -841,7 +835,7 @@ enum PlayerFilterChipStyle {
     var backgroundColor: Color {
         switch self {
         case .secondary:
-            return Color(.systemGray5)
+            return Color.clear
         case .active:
             return Color.blue
         case .colored(let color):

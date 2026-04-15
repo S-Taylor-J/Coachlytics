@@ -12,6 +12,7 @@ import SwiftData
 struct AddPlayerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \Team.name) private var teams: [Team]
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
     @State private var playerName = ""
@@ -78,7 +79,7 @@ struct AddPlayerSheet: View {
                 }
                 .padding()
             }
-            .background(Color(.systemGroupedBackground))
+            .background(backgroundColor)
             .navigationTitle("New Player")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -134,7 +135,7 @@ struct AddPlayerSheet: View {
                     
                     HStack {
                         Image(systemName: "person.text.rectangle")
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(Color.accentColor)
                             .frame(width: 24)
                         
                         TextField("Enter player's name", text: $playerName)
@@ -147,11 +148,11 @@ struct AddPlayerSheet: View {
                             }
                     }
                     .padding()
-                    .background(Color(.systemBackground))
+                    .background(fieldSurface)
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(focusedField == .name ? Color.blue : Color.clear, lineWidth: 2)
+                            .stroke(focusedField == .name ? Color.accentColor : Color.clear, lineWidth: 2)
                     )
                 }
                 
@@ -163,7 +164,7 @@ struct AddPlayerSheet: View {
                     
                     HStack {
                         Image(systemName: "number")
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(Color.accentColor)
                             .frame(width: 24)
                         
                         TextField("Enter jersey number", text: $playerNumber)
@@ -171,18 +172,17 @@ struct AddPlayerSheet: View {
                             .focused($focusedField, equals: .number)
                     }
                     .padding()
-                    .background(Color(.systemBackground))
+                    .background(fieldSurface)
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(focusedField == .number ? Color.blue : Color.clear, lineWidth: 2)
+                            .stroke(focusedField == .number ? Color.accentColor : Color.clear, lineWidth: 2)
                     )
                 }
             }
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .background(cardSurface(accent: .accentColor))
     }
     
     // MARK: - Team Section
@@ -199,11 +199,11 @@ struct AddPlayerSheet: View {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color.green.opacity(0.15))
+                            .fill(Color.accentColor.opacity(0.15))
                             .frame(width: 44, height: 44)
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Color.accentColor)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -217,7 +217,7 @@ struct AddPlayerSheet: View {
                     Spacer()
                 }
                 .padding()
-                .background(Color(.systemBackground))
+                .background(fieldSurface)
                 .cornerRadius(12)
             } else if teams.isEmpty {
                 HStack(spacing: 12) {
@@ -241,7 +241,7 @@ struct AddPlayerSheet: View {
                     Spacer()
                 }
                 .padding()
-                .background(Color(.systemBackground))
+                .background(fieldSurface)
                 .cornerRadius(12)
             } else {
                 VStack(spacing: 8) {
@@ -258,11 +258,11 @@ struct AddPlayerSheet: View {
                             HStack(spacing: 12) {
                                 ZStack {
                                     Circle()
-                                        .fill(selectedTeamForPlayer?.id == team.id ? Color.blue.opacity(0.15) : Color.gray.opacity(0.1))
+                                        .fill(selectedTeamForPlayer?.id == team.id ? Color.accentColor.opacity(0.15) : Color.gray.opacity(0.1))
                                         .frame(width: 44, height: 44)
                                     Image(systemName: selectedTeamForPlayer?.id == team.id ? "checkmark.circle.fill" : "circle")
                                         .font(.title2)
-                                        .foregroundStyle(selectedTeamForPlayer?.id == team.id ? .blue : .gray.opacity(0.5))
+                                        .foregroundStyle(selectedTeamForPlayer?.id == team.id ? Color.accentColor : .gray.opacity(0.5))
                                 }
                                 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -277,11 +277,11 @@ struct AddPlayerSheet: View {
                                 Spacer()
                             }
                             .padding()
-                            .background(Color(.systemBackground))
+                            .background(fieldSurface)
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(selectedTeamForPlayer?.id == team.id ? Color.blue : Color.clear, lineWidth: 2)
+                                    .stroke(selectedTeamForPlayer?.id == team.id ? Color.accentColor : Color.clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
@@ -310,7 +310,7 @@ struct AddPlayerSheet: View {
                             Spacer()
                         }
                         .padding()
-                        .background(Color(.systemBackground))
+                        .background(fieldSurface)
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
@@ -322,8 +322,7 @@ struct AddPlayerSheet: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .background(cardSurface(accent: .accentColor))
     }
     
     // MARK: - Position Section
@@ -366,8 +365,7 @@ struct AddPlayerSheet: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .background(cardSurface(accent: .accentColor))
     }
     
     // MARK: - Skills Section
@@ -409,8 +407,34 @@ struct AddPlayerSheet: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .background(cardSurface(accent: .accentColor))
+    }
+
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
+    }
+
+    private var fieldSurface: some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+            )
+    }
+
+    private func cardSurface(accent: Color) -> some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+            )
+            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
     }
     
     private func savePlayer() {

@@ -21,6 +21,10 @@ struct TeamManagementSheet: View {
     @State private var teamToEdit: Team?
     @State private var editedTeamName = ""
     
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -52,7 +56,7 @@ struct TeamManagementSheet: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(backgroundColor)
             .navigationTitle("Manage Teams")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -109,15 +113,9 @@ struct TeamManagementSheet: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.purple, .purple.opacity(0.7)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(Color.accentColor)
                         .frame(width: 56, height: 56)
-                        .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
+                        .shadow(color: Color.accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
                     
                     Image(systemName: "person.3.fill")
                         .font(.system(size: 22, weight: .semibold))
@@ -146,22 +144,18 @@ struct TeamManagementSheet: View {
                     Text("New Team")
                         .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(.green)
+                .foregroundColor(.accentColor)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.green.opacity(0.12))
+                        .fill(Color.accentColor.opacity(0.12))
                 )
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-        )
+        .background(cardSurface(accent: .accentColor))
     }
     
     // MARK: - Teams Section
@@ -192,7 +186,11 @@ struct TeamManagementSheet: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemBackground))
+                    .fill(.ultraThinMaterial)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+                    )
             )
         }
     }
@@ -202,11 +200,7 @@ struct TeamManagementSheet: View {
             // Team Badge
             ZStack {
                 Circle()
-                    .fill(
-                        selectedTeam?.id == team.id
-                            ? LinearGradient(colors: [.purple, .purple.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            : LinearGradient(colors: [Color(.systemGray4), Color(.systemGray4).opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
+                    .fill(selectedTeam?.id == team.id ? Color.accentColor : Color(.systemGray4))
                     .frame(width: 44, height: 44)
                 
                 Image(systemName: "person.3.fill")
@@ -236,8 +230,9 @@ struct TeamManagementSheet: View {
                     Image(systemName: "pencil")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.blue)
+                        .foregroundColor(.accentColor)
                         .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color.blue.opacity(0.12)))
+                        .background(Circle().fill(Color.accentColor.opacity(0.12)))
                 }
                 .buttonStyle(.plain)
                 
@@ -258,7 +253,7 @@ struct TeamManagementSheet: View {
             if selectedTeam?.id == team.id {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 22))
-                    .foregroundColor(.purple)
+                    .foregroundColor(.accentColor)
                     .transition(.scale.combined(with: .opacity))
             }
         }
@@ -271,6 +266,20 @@ struct TeamManagementSheet: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             dismiss()
         }
+    }
+
+    private func cardSurface(accent: Color) -> some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+            )
+            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
     }
     
     private func deleteTeam(_ team: Team) {
