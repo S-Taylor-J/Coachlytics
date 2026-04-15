@@ -27,6 +27,7 @@ struct AddEditView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \Team.name) private var teams: [Team]
     @Query(sort: \Player.name) private var players: [Player]
+    @Query(sort: \Game.date, order: .reverse) private var games: [Game]
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
     
     @State private var searchText = ""
@@ -39,6 +40,7 @@ struct AddEditView: View {
     @State private var playerToDelete: Player?
     @State private var offsetsToDelete: IndexSet?
     @State private var playerForTeamAssignment: Player?
+    @State private var selectedPlayerForStats: Player?
     
     // Filter States
     @State private var selectedPositionFilter: String?
@@ -105,6 +107,13 @@ struct AddEditView: View {
         
         return result
     }
+
+    private var teamPlayersForStats: [Player] {
+        if let team = selectedTeam {
+            return team.players.sorted { $0.number < $1.number }
+        }
+        return players.sorted { $0.number < $1.number }
+    }
     
     var body: some View {
         NavigationStack {
@@ -125,10 +134,12 @@ struct AddEditView: View {
                 } else {
                     List {
                         ForEach(filteredPlayers) { player in
-                            Button {
+                            PlayerRow(player: player) {
                                 playerToEdit = player
-                            } label: {
-                                PlayerRow(player: player)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedPlayerForStats = player
                             }
                             .listRowBackground(backgroundColor)
                             .listRowSeparator(.visible)
@@ -205,6 +216,9 @@ struct AddEditView: View {
             }
             .sheet(item: $playerToEdit) { player in
                 EditPlayerSheet(player: player)
+            }
+            .sheet(item: $selectedPlayerForStats) { player in
+                PlayerStatsSheet(player: player, games: games, teamPlayers: teamPlayersForStats)
             }
             .sheet(item: $playerForTeamAssignment) { player in
                 TeamAssignmentSheet(player: player, selectedTeam: $selectedTeam)
@@ -664,7 +678,7 @@ struct AddEditView: View {
         .background(backgroundColor)
     }
     
-    private func PlayerRow(player: Player) -> some View {
+    private func PlayerRow(player: Player, onEdit: @escaping () -> Void) -> some View {
         HStack(spacing: 14) {
             // Player number badge
             ZStack {
@@ -773,9 +787,19 @@ struct AddEditView: View {
             
             Spacer(minLength: 8)
             
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.quaternary)
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.8))
+                    )
+            }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)

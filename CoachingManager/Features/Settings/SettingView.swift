@@ -43,6 +43,8 @@ struct SettingsView: View {
     @State private var showAddSkillAlert = false
     @State private var showAddPositionAlert = false
     @State private var showResetConfirmation = false
+    @State private var showSkillsManagement = false
+    @State private var showPositionsManagement = false
     
     private var ourTeamColorBinding: Binding<Color> {
         Binding(
@@ -61,249 +63,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // MARK: - General Settings
-                Section {
-                    SettingsSectionCard(accent: brandAccent) {
-                        Picker("Default Team", selection: $defaultTeamId) {
-                            Text("None").tag("")
-                            ForEach(teams) { team in
-                                Text(team.name).tag(team.id.uuidString)
-                            }
-                        }
-
-                        Divider()
-
-                        Stepper("Minimum Players: \(minPlayersOnPitch)", value: $minPlayersOnPitch, in: 1...22)
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Label("General", systemImage: "gearshape")
-                } footer: {
-                    Text("Set your default team and minimum players required on the pitch.")
-                }
-                
-                
-                // MARK: - Skills & Positions Management
-                Section {
-                    SettingsSectionCard(accent: brandAccent) {
-                        NavigationLink {
-                            SkillsManagementView(customOptionsManager: customOptionsManager)
-                        } label: {
-                            HStack {
-                                Label("Manage Skills", systemImage: "star.fill")
-                                Spacer()
-                                Text("\(customOptionsManager.allSkills.count) active")
-                                    .foregroundColor(.secondary)
-                                    .font(.subheadline)
-                            }
-                        }
-
-                        Divider()
-
-                        NavigationLink {
-                            PositionsManagementView(customOptionsManager: customOptionsManager)
-                        } label: {
-                            HStack {
-                                Label("Manage Positions", systemImage: "figure.run")
-                                Spacer()
-                                Text("\(customOptionsManager.allPositions.count) active")
-                                    .foregroundColor(.secondary)
-                                    .font(.subheadline)
-                            }
-                        }
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Label("Skills & Positions", systemImage: "list.bullet")
-                } footer: {
-                    Text("Add custom skills and positions, or hide default ones you don't need.")
-                }
-                
-                // MARK: - Skill Filter Section
-                Section {
-                    SettingsSectionCard(accent: brandAccent) {
-                        Toggle("Filter by Required Skills", isOn: $enableSkillFilter)
-
-                        if enableSkillFilter {
-                            Divider()
-
-                            VStack(alignment: .leading, spacing: 12) {
-                                if !selectedSkills.isEmpty {
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 8) {
-                                            ForEach(Array(selectedSkills), id: \.self) { skill in
-                                                HStack(spacing: 4) {
-                                                    Text(skill)
-                                                        .font(.caption)
-                                                    Button {
-                                                        selectedSkills.remove(skill)
-                                                    } label: {
-                                                        Image(systemName: "xmark.circle.fill")
-                                                            .foregroundColor(.gray)
-                                                    }
-                                                }
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 6)
-                                                .background(Capsule().fill(Color.blue.opacity(0.12)))
-                                            }
-                                        }
-                                    }
-                                    .frame(height: 40)
-                                }
-
-                                NavigationLink {
-                                    SkillSelectionView(
-                                        allSkills: allSkills,
-                                        selectedSkills: $selectedSkills
-                                    )
-                                } label: {
-                                    HStack {
-                                        Text("Select Required Skills")
-                                        Spacer()
-                                        Text("\(selectedSkills.count) selected")
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Label("Pitch Skill Filter", systemImage: "line.3.horizontal.decrease.circle")
-                } footer: {
-                    Text(enableSkillFilter ? "Only players with selected skills will be available for the pitch." : "All players will be available regardless of skills.")
-                }
-
-                // MARK: - Pitch Display //TODO need to fix player timer
-                 Section {
-                     SettingsSectionCard(accent: brandAccent) {
-                         Toggle("Show Player Timers", isOn: $showPlayerTimers)
-                     }
-                     .listRowInsets(EdgeInsets())
-                     .listRowBackground(Color.clear)
-                 } header: {
-                     Label("Pitch Display", systemImage: "clock")
-                 } footer: {
-                     Text("Toggle timer badges under players on the pitch and bench.")
-                 }
-                
-                // MARK: - Event Recording Settings
-                Section {
-                    SettingsSectionCard(accent: brandAccent) {
-                        Toggle("Require Player for Infractions", isOn: $gameSettings.requirePlayerForInfractions)
-                        Divider()
-                        Toggle("Require Player for Circle Entry", isOn: $gameSettings.requirePlayerForCircleEntry)
-                        Divider()
-                        Toggle("Require Player for Turnover", isOn: $gameSettings.requirePlayerForTurnover)
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Label("Event Recording", systemImage: "square.and.pencil")
-                } footer: {
-                    Text("When enabled, you'll select a specific player when recording events for your team.")
-                }
-                
-                // MARK: - Event Marker Appearance
-                Section {
-                    SettingsSectionCard(accent: brandAccent) {
-                        Toggle("Show Symbols on Pitch", isOn: $circleResultSettings.showSymbolsOnPitch)
-
-                        Divider()
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("Marker Size")
-                                Spacer()
-                                Text(markerSizeLabel)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            HStack(spacing: 12) {
-                                Image(systemName: "circle.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                                Slider(value: $circleResultSettings.eventMarkerSize, in: 0.5...1.5, step: 0.25)
-                                Image(systemName: "circle.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-
-                        Divider()
-
-                        NavigationLink {
-                            CircleResultAppearanceView(settings: $circleResultSettings)
-                        } label: {
-                            HStack {
-                                Text("Customize Colors")
-                                Spacer()
-                                HStack(spacing: 4) {
-                                    ForEach([CircleResult.goal, .penaltyCorner, .shotSaved, .turnover], id: \.self) { result in
-                                        Circle()
-                                            .fill(circleResultSettings.appearance(for: result).color)
-                                            .frame(width: 14, height: 14)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Label("Event Markers", systemImage: "paintpalette")
-                } footer: {
-                    Text("Customize how event markers appear on the pitch.")
-                }
-
-                // MARK: - Team Colors
-                Section {
-                    SettingsSectionCard(accent: brandAccent) {
-                        ColorPicker("Our Team", selection: ourTeamColorBinding, supportsOpacity: false)
-                        Divider()
-                        ColorPicker("Opponent", selection: opponentTeamColorBinding, supportsOpacity: false)
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Label("Team Colors", systemImage: "paintpalette.fill")
-                } footer: {
-                    Text("Customize the colors used for team highlights in game view.")
-                }
-
-                // MARK: - Save & Reset
-                Section {
-                    SettingsSectionCard(accent: brandAccent) {
-                        Button {
-                            saveSettings()
-                        } label: {
-                            HStack {
-                                Spacer()
-                                Label("Save Settings", systemImage: "checkmark.circle.fill")
-                                Spacer()
-                            }
-                        }
-                        .disabled(!settingsChanged())
-
-                        Divider()
-
-                        Button(role: .destructive) {
-                            showResetConfirmation = true
-                        } label: {
-                            HStack {
-                                Spacer()
-                                Label("Reset All to Defaults", systemImage: "arrow.counterclockwise")
-                                    .foregroundStyle(.red)
-                                Spacer()
-                            }
-                        }
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                }
+                generalSection
+                skillsPositionsSection
+                skillFilterSection
+                pitchDisplaySection
+                eventRecordingSection
+                eventMarkersSection
+                teamColorsSection
+                saveResetSection
             }
             .contentMargins(.bottom, 100, for: .scrollContent)
             .scrollContentBackground(.hidden)
@@ -333,6 +100,12 @@ struct SettingsView: View {
             .onChange(of: circleResultSettings) {
                 circleResultSettings.saveToDefaults()
             }
+            .navigationDestination(isPresented: $showSkillsManagement) {
+                SkillsManagementView(customOptionsManager: customOptionsManager)
+            }
+            .navigationDestination(isPresented: $showPositionsManagement) {
+                PositionsManagementView(customOptionsManager: customOptionsManager)
+            }
         }
     }
 
@@ -346,6 +119,269 @@ struct SettingsView: View {
 
     private var brandMidnight: Color {
         Color(red: 0.05, green: 0.06, blue: 0.09)
+    }
+
+    private var generalSection: some View {
+        Section {
+            SettingsSectionCard(accent: brandAccent) {
+                Picker("Default Team", selection: $defaultTeamId) {
+                    Text("None").tag("")
+                    ForEach(teams) { team in
+                        Text(team.name).tag(team.id.uuidString)
+                    }
+                }
+
+                Divider()
+
+                Stepper("Minimum Players: \(minPlayersOnPitch)", value: $minPlayersOnPitch, in: 1...22)
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } header: {
+            Label("General", systemImage: "gearshape")
+        } footer: {
+            Text("Set your default team and minimum players required on the pitch.")
+        }
+    }
+
+    private var skillsPositionsSection: some View {
+        Section {
+            Button {
+                showSkillsManagement = true
+            } label: {
+                SettingsSectionCard(accent: brandAccent) {
+                    HStack {
+                        Text("Manage Skills")
+                        Spacer()
+                        Text("\(customOptionsManager.allSkills.count) active")
+                            .foregroundColor(.secondary)
+                            .font(.subheadline)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+
+            Button {
+                showPositionsManagement = true
+            } label: {
+                SettingsSectionCard(accent: brandAccent) {
+                    HStack {
+                        Text("Manage Positions")
+                        Spacer()
+                        Text("\(customOptionsManager.allPositions.count) active")
+                            .foregroundColor(.secondary)
+                            .font(.subheadline)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } header: {
+            Label("Skills & Positions", systemImage: "list.bullet")
+        } footer: {
+            Text("Add custom skills and positions, or hide default ones you don't need.")
+        }
+    }
+
+    private var skillFilterSection: some View {
+        Section {
+            SettingsSectionCard(accent: brandAccent) {
+                Toggle("Filter by Required Skills", isOn: $enableSkillFilter)
+
+                if enableSkillFilter {
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        if !selectedSkills.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(Array(selectedSkills), id: \.self) { skill in
+                                        HStack(spacing: 4) {
+                                            Text(skill)
+                                                .font(.caption)
+                                            Button {
+                                                selectedSkills.remove(skill)
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Capsule().fill(Color.blue.opacity(0.12)))
+                                    }
+                                }
+                            }
+                            .frame(height: 40)
+                        }
+
+                        NavigationLink {
+                            SkillSelectionView(
+                                allSkills: allSkills,
+                                selectedSkills: $selectedSkills
+                            )
+                        } label: {
+                            HStack {
+                                Text("Select Required Skills")
+                                Spacer()
+                                Text("\(selectedSkills.count) selected")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } header: {
+            Label("Pitch Skill Filter", systemImage: "line.3.horizontal.decrease.circle")
+        } footer: {
+            Text(enableSkillFilter ? "Only players with selected skills will be available for the pitch." : "All players will be available regardless of skills.")
+        }
+    }
+
+    private var pitchDisplaySection: some View {
+        Section {
+            SettingsSectionCard(accent: brandAccent) {
+                Toggle("Show Player Timers", isOn: $showPlayerTimers)
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } header: {
+            Label("Pitch Display", systemImage: "clock")
+        } footer: {
+            Text("Toggle timer badges under players on the pitch and bench.")
+        }
+    }
+
+    private var eventRecordingSection: some View {
+        Section {
+            SettingsSectionCard(accent: brandAccent) {
+                Toggle("Require Player for Infractions", isOn: $gameSettings.requirePlayerForInfractions)
+                Divider()
+                Toggle("Require Player for Circle Entry", isOn: $gameSettings.requirePlayerForCircleEntry)
+                Divider()
+                Toggle("Require Player for Turnover", isOn: $gameSettings.requirePlayerForTurnover)
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } header: {
+            Label("Event Recording", systemImage: "square.and.pencil")
+        } footer: {
+            Text("When enabled, you'll select a specific player when recording events for your team.")
+        }
+    }
+
+    private var eventMarkersSection: some View {
+        Section {
+            SettingsSectionCard(accent: brandAccent) {
+                Toggle("Show Symbols on Pitch", isOn: $circleResultSettings.showSymbolsOnPitch)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Marker Size")
+                        Spacer()
+                        Text(markerSizeLabel)
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack(spacing: 12) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                        Slider(value: $circleResultSettings.eventMarkerSize, in: 0.5...1.5, step: 0.25)
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Divider()
+
+                NavigationLink {
+                    CircleResultAppearanceView(settings: $circleResultSettings)
+                } label: {
+                    HStack {
+                        Text("Customize Colors")
+                        Spacer()
+                        HStack(spacing: 4) {
+                            ForEach([CircleResult.goal, .penaltyCorner, .shotSaved, .turnover], id: \.self) { result in
+                                Circle()
+                                    .fill(circleResultSettings.appearance(for: result).color)
+                                    .frame(width: 14, height: 14)
+                            }
+                        }
+                    }
+                }
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } header: {
+            Label("Event Markers", systemImage: "paintpalette")
+        } footer: {
+            Text("Customize how event markers appear on the pitch.")
+        }
+    }
+
+    private var teamColorsSection: some View {
+        Section {
+            SettingsSectionCard(accent: brandAccent) {
+                ColorPicker("Our Team", selection: ourTeamColorBinding, supportsOpacity: false)
+                Divider()
+                ColorPicker("Opponent", selection: opponentTeamColorBinding, supportsOpacity: false)
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } header: {
+            Label("Team Colors", systemImage: "paintpalette.fill")
+        } footer: {
+            Text("Customize the colors used for team highlights in game view.")
+        }
+    }
+
+    private var saveResetSection: some View {
+        Section {
+            SettingsSectionCard(accent: brandAccent) {
+                Button {
+                    saveSettings()
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label("Save Settings", systemImage: "checkmark.circle.fill")
+                        Spacer()
+                    }
+                }
+                .disabled(!settingsChanged())
+
+                Divider()
+
+                Button(role: .destructive) {
+                    showResetConfirmation = true
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label("Reset All to Defaults", systemImage: "arrow.counterclockwise")
+                            .foregroundStyle(.red)
+                        Spacer()
+                    }
+                }
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        }
     }
 
     // MARK: - Helper Methods
@@ -446,11 +482,6 @@ private struct SettingsSectionCard<Content: View>: View {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
-                )
-                .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
         )
     }
 }
@@ -1189,7 +1220,6 @@ struct CircleResultPreview: View {
                     )
                 )
                 .frame(width: size * 0.78, height: size * 0.78)
-                .shadow(color: appearance.color.opacity(0.4), radius: 4, x: 0, y: 2)
                 .overlay(
                     Image(systemName: showSymbol ? appearance.symbol : "circle.fill")
                         .font(.system(size: size * 0.33, weight: .bold))
@@ -1399,7 +1429,6 @@ struct ColorSelectionButton: View {
                         )
                     )
                     .frame(width: 34, height: 34)
-                    .shadow(color: isSelected ? color.opacity(0.5) : .clear, radius: 4, x: 0, y: 2)
                 
                 // Checkmark
                 if isSelected {
@@ -1444,7 +1473,6 @@ struct SymbolSelectionButton: View {
                           )
                     )
                     .frame(width: 40, height: 40)
-                    .shadow(color: isSelected ? accentColor.opacity(0.4) : .clear, radius: 4, x: 0, y: 2)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .stroke(isSelected ? accentColor.opacity(0.3) : Color.clear, lineWidth: 1)

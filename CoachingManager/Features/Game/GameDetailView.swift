@@ -1045,10 +1045,6 @@ struct GameClockCard2: View {
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.white.opacity(0.7))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.35), lineWidth: 1)
-                        )
                 )
                 
                 // Control buttons
@@ -1151,7 +1147,6 @@ struct GameClockCard2: View {
                             )
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: .green.opacity(0.4), radius: 8, x: 0, y: 4)
                     }
                     .padding(.top, 8)
                 }
@@ -1320,13 +1315,6 @@ struct ScoreCard2: View {
         }
         .background(
             GameDetailCardSurface(accent: isCompleted ? resultColor : .blue)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(
-                    isCompleted ? resultColor.opacity(0.2) : Color.clear,
-                    lineWidth: 2
-                )
         )
     }
 }
@@ -1575,24 +1563,6 @@ struct EventMarkerView: View {
     
     var body: some View {
         ZStack {
-            // Highlight glow when selected
-            if isHighlighted {
-                Circle()
-                    .fill(color.opacity(0.5))
-                    .frame(width: 48 * sizeMultiplier, height: 48 * sizeMultiplier)
-                    .blur(radius: 4)
-            }
-            
-            // Outer glow for better visibility
-            Circle()
-                .fill(color.opacity(0.3))
-                .frame(width: 36 * sizeMultiplier, height: 36 * sizeMultiplier)
-            
-            // Team indicator ring (thin border showing team)
-            Circle()
-                .stroke(teamColor, lineWidth: 2 * sizeMultiplier)
-                .frame(width: 30 * sizeMultiplier, height: 30 * sizeMultiplier)
-            
             // Inner circle with outcome color
             Circle()
                 .fill(color)
@@ -1802,24 +1772,6 @@ struct EventCardView: View {
         .background(
             GameDetailCardSurface(accent: teamColor, cornerRadius: 14)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(
-                    LinearGradient(
-                        colors: [teamColor.opacity(0.4), teamColor.opacity(0.1)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 1.5
-                )
-        )
-        .overlay(
-            // Highlight border when selected
-            isHighlighted ?
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.blue, lineWidth: 3)
-                : nil
-        )
         .opacity(isFaded ? 0.4 : 1.0)
         .scaleEffect(isHighlighted ? 1.05 : 1.0)
     }
@@ -1996,16 +1948,6 @@ struct EventListRowView: View {
         .background(
             GameDetailCardSurface(accent: teamColor, cornerRadius: 10)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(teamColor.opacity(0.3), lineWidth: 1)
-        )
-        .overlay(
-            isHighlighted ?
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.blue, lineWidth: 2)
-                : nil
-        )
         .opacity(isFaded ? 0.4 : 1.0)
         .scaleEffect(isHighlighted ? 1.02 : 1.0)
     }
@@ -2053,7 +1995,6 @@ struct MarkerMoveControls: View {
             .foregroundColor(.white.opacity(0.95))
             .rotationEffect(.degrees(angle))
             .frame(width: arrowSize, height: arrowSize)
-            .shadow(color: Color.black.opacity(0.18), radius: 2, x: 0, y: 1)
     }
 }
 
@@ -2141,26 +2082,6 @@ struct QuarterPill: View {
                             ? LinearGradient(colors: gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing)
                             : LinearGradient(colors: [Color(.systemGray6), Color(.systemGray6)], startPoint: .top, endPoint: .bottom)
                     )
-                    .shadow(color: isSelected ? gradientColors[0].opacity(0.4) : .clear, radius: 6, x: 0, y: 3)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(
-                        isLive && !isSelected
-                            ? Color.green.opacity(0.5)
-                            : (isSelected ? Color.white.opacity(0.2) : Color(.systemGray5)),
-                        lineWidth: isLive && !isSelected ? 2 : 1
-                    )
-            )
-            .overlay(
-                // Live pulse animation
-                Group {
-                    if isLive && !isSelected {
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.green.opacity(0.3), lineWidth: 2)
-                            .scaleEffect(1.05)
-                    }
-                }
             )
         }
         .disabled(isDisabled)
@@ -2209,11 +2130,6 @@ private struct GameDetailCardSurface: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
-            )
-            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
     }
 }
 

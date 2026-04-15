@@ -277,6 +277,8 @@ struct PitchView: View {
 
     @ViewBuilder
     private func pitchContent(game: Game, gameTimer: GameTimer) -> some View {
+        let _ = playerTimeService.tickCount
+        let _ = gameTimer.elapsedTime
         let playerTimes = playerQuarterTimes(for: game, timer: gameTimer)
         ZStack {
             // Background gradient
