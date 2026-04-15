@@ -197,6 +197,28 @@ class PlayerTimeService: ObservableObject {
         applyRosterChange(gameId: gameId, newPlayers: Set(playerIds))
     }
 
+    func ensureActiveStints(gameId: UUID, playerIds: [UUID]) {
+        guard resolveGameTimer(for: gameId)?.isRunning ?? false else { return }
+
+        let time = currentMatchTime(gameId: gameId)
+        var byPlayer = playerStintsByGame[gameId] ?? [:]
+        var didOpen = false
+
+        for playerId in playerIds {
+            let stints = byPlayer[playerId] ?? []
+            if let last = stints.last, last.endTime == nil {
+                continue
+            }
+            openStint(playerId: playerId, gameId: gameId, at: time)
+            didOpen = true
+            byPlayer = playerStintsByGame[gameId] ?? [:]
+        }
+
+        if didOpen {
+            objectWillChange.send()
+        }
+    }
+
     func clearPitch(for gameId: UUID) {
         let time = currentMatchTime(gameId: gameId)
         if let ids = playersOnPitch[gameId], !ids.isEmpty {
@@ -228,6 +250,18 @@ class PlayerTimeService: ObservableObject {
 
         let playerIds = Set(savedPlayers.map { $0.playerId })
         applyRosterChange(gameId: activeGameId, newPlayers: playerIds)
+    }
+
+    func ensureActiveStintsFromDefaults(gameId: UUID) {
+        guard resolveGameTimer(for: gameId)?.isRunning ?? false else { return }
+
+        guard let data = UserDefaults.standard.data(forKey: "pitchPlayers"),
+              let savedPlayers = try? JSONDecoder().decode([SavedPitchPlayer].self, from: data)
+        else { return }
+
+        let playerIds = Set(savedPlayers.map { $0.playerId })
+        applyRosterChange(gameId: gameId, newPlayers: playerIds)
+        ensureActiveStints(gameId: gameId, playerIds: Array(playerIds))
     }
 
     // MARK: - Reset & Load

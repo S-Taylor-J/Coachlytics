@@ -391,6 +391,12 @@ struct PitchView: View {
             loadQuarterTimes()
             loadGameSettings()
             syncPlayersOnPitchWithService()
+            if gameTimer.isRunning {
+                playerTimeService.ensureActiveStints(
+                    gameId: game.id,
+                    playerIds: pitchPlayers.map { $0.player.id }
+                )
+            }
             if activeGameId != game.id.uuidString {
                 activeGameId = game.id.uuidString
             }
@@ -425,7 +431,9 @@ struct PitchView: View {
             // When game changes, reset player quarter times
             if !oldId.isEmpty && oldId != newId {
                 // Save times for the old game before resetting
-                saveTimesToGame()
+                if let oldGame = activeGames.first(where: { $0.id.uuidString == oldId }) {
+                    saveTimesToGame(for: oldGame)
+                }
                 // Reset player quarter times for the new game via service
                 if let oldGameUUID = UUID(uuidString: oldId) {
                     playerTimeService.clearPitch(for: oldGameUUID)
@@ -438,6 +446,13 @@ struct PitchView: View {
             if let updatedGame = currentGame {
                 configurePlayerTimeAutoSave(for: updatedGame)
             }
+        }
+        .onChange(of: gameTimer.isRunning) { _, isRunning in
+            guard isRunning else { return }
+            playerTimeService.ensureActiveStints(
+                gameId: game.id,
+                playerIds: pitchPlayers.map { $0.player.id }
+            )
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             handleScenePhaseChange(from: oldPhase, to: newPhase)
@@ -593,6 +608,10 @@ struct PitchView: View {
     // MARK: Save Times to Game
     private func saveTimesToGame() {
         guard let game = currentGame else { return }
+        saveTimesToGame(for: game)
+    }
+
+    private func saveTimesToGame(for game: Game) {
         playerTimeService.persistStints(to: game)
         try? modelContext.save()
     }

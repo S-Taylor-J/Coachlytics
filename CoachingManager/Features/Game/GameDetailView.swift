@@ -14,6 +14,7 @@ struct GameDetailView: View {
     @Bindable var game: Game
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("activeGameId") private var activeGameId: String = ""
     @Query(sort: \Player.number) private var allPlayers: [Player]
     @Query(sort: \Team.name) private var teams: [Team]
     
@@ -270,6 +271,10 @@ struct GameDetailView: View {
         }
         .onAppear {
             PlayerTimeService.shared.track(game: game)
+            if game.isGameActive || game.isRunning {
+                activeGameId = game.id.uuidString
+                PlayerTimeService.shared.ensureActiveStintsFromDefaults(gameId: game.id)
+            }
             // Load game settings
             if let settingsString = UserDefaults.standard.string(forKey: "gameSettingsData"),
                let data = settingsString.data(using: .utf8),
@@ -972,6 +977,7 @@ struct GameClockCard2: View {
     let onEndGame: () -> Void
     
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("activeGameId") private var activeGameId: String = ""
     
     var body: some View {
         VStack(spacing: 16) {
@@ -1055,7 +1061,9 @@ struct GameClockCard2: View {
                             icon: "play.fill",
                             color: .green
                         ) {
+                            activeGameId = gameId.uuidString
                             gameTimer.startGame()
+                            PlayerTimeService.shared.ensureActiveStintsFromDefaults(gameId: gameId)
                             onSaveState()
                         }
                     } else {
@@ -1074,7 +1082,9 @@ struct GameClockCard2: View {
                                 icon: "play.fill",
                                 color: .green
                             ) {
+                                activeGameId = gameId.uuidString
                                 gameTimer.startClock()
+                                PlayerTimeService.shared.ensureActiveStintsFromDefaults(gameId: gameId)
                             }
                         }
                         
