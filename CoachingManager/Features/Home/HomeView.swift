@@ -160,15 +160,15 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(greetingText)
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
 
                     Text(myTeam?.name ?? "My Team")
                         .font(.system(size: 30, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(colorScheme == .dark ? .white : .primary)
 
                     Text("\(teamPlayers.count) players")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.85) : .secondary)
                 }
 
                 Spacer()
@@ -204,21 +204,21 @@ struct HomeView: View {
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                     Text(nextGame.date.formatted(date: .abbreviated, time: .shortened))
                         .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
                 }
-                .foregroundColor(.white)
+                .foregroundColor(colorScheme == .dark ? .white : .primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(Color.white.opacity(0.12))
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.06))
                 )
             }
         }
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-            .fill(colorScheme == .dark ? brandNavy : Color(red: 0.18, green: 0.20, blue: 0.26))
+            .fill(colorScheme == .dark ? brandNavy : Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(brandAccent.opacity(colorScheme == .dark ? 0.5 : 0.35), lineWidth: 1)
@@ -735,16 +735,16 @@ struct HomeView: View {
         HStack(spacing: 6) {
             Text(label)
                 .font(.system(size: 10, weight: .bold, design: .rounded))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .secondary)
             Text(value)
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(colorScheme == .dark ? .white : .primary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(Color.white.opacity(0.12))
+                .fill(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.06))
         )
     }
     
