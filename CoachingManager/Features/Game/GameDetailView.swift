@@ -53,16 +53,6 @@ struct GameDetailView: View {
     private let pitchAspectRatio: CGFloat = 2.0/3.0
     private let recentEventsMaxRows: CGFloat = 10
     
-    // Pitch dimensions - computed properties to avoid deprecated UIScreen.main warning
-    private var pitchWidth: CGFloat {
-        (UIScreen.main.bounds.width) * 0.94
-    }
-    
-    private var pitchHeight: CGFloat {
-        let maxHeight = (UIScreen.main.bounds.height) * 0.80
-        return min(maxHeight, pitchWidth / pitchAspectRatio)
-    }
-    
     // Players available for this game
     private var gamePlayers: [Player] {
         if game.hasSelectedPlayerSelection {
