@@ -8,7 +8,7 @@
 struct PlayerTimeMinimalView: View {
     let players: [Player]
     let pitchPlayers: [PitchPlayer]
-    let playerQuarterTimes: [UUID: TimeInterval]
+    let playerTimes: [UUID: TimeInterval]
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
@@ -128,7 +128,7 @@ struct PlayerTimeMinimalView: View {
     }
     
     private func getTime(for player: Player) -> TimeInterval {
-        playerQuarterTimes[player.id] ?? 0
+        playerTimes[player.id] ?? 0
     }
     
     private func formatTime(_ time: TimeInterval) -> String {
@@ -232,6 +232,10 @@ struct PitchView: View {
     private func playerQuarterTimes(for game: Game, timer: GameTimer) -> [UUID: TimeInterval] {
         playerTimeService.getAllTimes(for: game.id, quarter: timer.currentQuarter)
     }
+
+    private func playerTotalTimes(for game: Game) -> [UUID: TimeInterval] {
+        playerTimeService.getAllTimesTotal(for: game.id)
+    }
     
     // Calculate quarter play percentage for a player
     // Service tickCount ensures this recalculates when timer updates
@@ -279,7 +283,7 @@ struct PitchView: View {
     private func pitchContent(game: Game, gameTimer: GameTimer) -> some View {
         let _ = playerTimeService.tickCount
         let _ = gameTimer.elapsedTime
-        let playerTimes = playerQuarterTimes(for: game, timer: gameTimer)
+        let playerTimes = playerTotalTimes(for: game)
         ZStack {
             // Background gradient
             backgroundGradient
@@ -346,7 +350,7 @@ struct PitchView: View {
                     NavigationLink(destination: PlayerTimeMinimalView(
                         players: players,
                         pitchPlayers: pitchPlayers,
-                        playerQuarterTimes: playerQuarterTimes(for: game, timer: gameTimer)
+                        playerTimes: playerTotalTimes(for: game)
                     )) {
                         Image(systemName: "clock.fill")
                             .font(.system(size: 15, weight: .medium))
@@ -522,7 +526,7 @@ struct PitchView: View {
                     NavigationLink(destination: PlayerTimeMinimalView(
                         players: players,
                         pitchPlayers: pitchPlayers,
-                        playerQuarterTimes: [:]
+                        playerTimes: [:]
                     )) {
                         Image(systemName: "clock.fill")
                             .font(.system(size: 15, weight: .medium))

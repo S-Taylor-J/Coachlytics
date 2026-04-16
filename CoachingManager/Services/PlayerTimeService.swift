@@ -56,10 +56,14 @@ class PlayerTimeService: ObservableObject {
         // even when PitchView is not on screen.
         refreshPlayersOnPitchFromDefaults()
 
-        let shouldTick = playersOnPitch.contains { gameId, playerIds in
-            guard !playerIds.isEmpty else { return false }
-            return resolveGameTimer(for: gameId)?.isRunning ?? false
-        }
+        let activeGameIdString = UserDefaults.standard.string(forKey: "activeGameId") ?? ""
+        let activeGameId = UUID(uuidString: activeGameIdString)
+
+        let shouldTick = (activeGameId != nil && (resolveGameTimer(for: activeGameId!)?.isRunning ?? false))
+            || playersOnPitch.contains { gameId, playerIds in
+                guard !playerIds.isEmpty else { return false }
+                return resolveGameTimer(for: gameId)?.isRunning ?? false
+            }
         guard shouldTick else { return }
 
         DispatchQueue.main.async {
@@ -136,6 +140,24 @@ class PlayerTimeService: ObservableObject {
         return result
     }
 
+    private func fallbackTotalTimes(for gameId: UUID) -> [UUID: TimeInterval] {
+        guard let game = trackedGames[gameId] else { return [:] }
+        guard !game.playerPlayTimes.isEmpty else { return [:] }
+
+        var result: [UUID: TimeInterval] = [:]
+        for (playerIdString, quarterTimes) in game.playerPlayTimes {
+            guard let playerId = UUID(uuidString: playerIdString) else { continue }
+            var total: TimeInterval = 0
+            for value in quarterTimes.values {
+                total += value
+            }
+            if total > 0 {
+                result[playerId] = total
+            }
+        }
+        return result
+    }
+
     // MARK: - Time Access
 
     func getTime(for playerId: UUID, gameId: UUID, quarter: Int) -> TimeInterval {
@@ -169,6 +191,34 @@ class PlayerTimeService: ObservableObject {
                 let overlapEnd = min(end, quarterEnd)
                 if overlapEnd > overlapStart {
                     total += overlapEnd - overlapStart
+                }
+            }
+            if total > 0 {
+                result[playerId] = total
+            }
+        }
+        return result
+    }
+
+    func getAllTimesTotal(for gameId: UUID) -> [UUID: TimeInterval] {
+        guard let timer = resolveGameTimer(for: gameId) else {
+            return fallbackTotalTimes(for: gameId)
+        }
+
+        let elapsed = timer.elapsedTime
+        let stintsByPlayer = playerStintsByGame[gameId] ?? [:]
+        if stintsByPlayer.isEmpty {
+            return fallbackTotalTimes(for: gameId)
+        }
+
+        var result: [UUID: TimeInterval] = [:]
+        for (playerId, stints) in stintsByPlayer {
+            var total: TimeInterval = 0
+            for stint in stints {
+                let start = stint.startTime
+                let end = stint.endTime ?? elapsed
+                if end > start {
+                    total += end - start
                 }
             }
             if total > 0 {
@@ -253,8 +303,6 @@ class PlayerTimeService: ObservableObject {
     }
 
     func ensureActiveStintsFromDefaults(gameId: UUID) {
-        guard resolveGameTimer(for: gameId)?.isRunning ?? false else { return }
-
         guard let data = UserDefaults.standard.data(forKey: "pitchPlayers"),
               let savedPlayers = try? JSONDecoder().decode([SavedPitchPlayer].self, from: data)
         else { return }
