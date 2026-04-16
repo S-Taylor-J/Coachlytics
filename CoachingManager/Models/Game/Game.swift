@@ -54,6 +54,9 @@ class Game {
 
     // Player stints stored as JSON data (per player)
     var playerStintsData: Data?
+
+    // Selected players for this game stored as JSON data
+    var selectedPlayerIdsData: Data?
     
     // Computed property to check if game is scheduled for the future
     var isScheduled: Bool {
@@ -89,6 +92,22 @@ class Game {
         self.eventsData = nil
         self.playerPlayTimesData = nil
         self.playerStintsData = nil
+        self.selectedPlayerIdsData = nil
+    }
+
+    // MARK: - Selected Players
+    var hasSelectedPlayerSelection: Bool {
+        selectedPlayerIdsData != nil
+    }
+
+    var selectedPlayerIds: [UUID] {
+        get {
+            guard let data = selectedPlayerIdsData else { return [] }
+            return (try? JSONDecoder().decode([UUID].self, from: data)) ?? []
+        }
+        set {
+            selectedPlayerIdsData = try? JSONEncoder().encode(newValue)
+        }
     }
     
     // MARK: - Player Play Times Management

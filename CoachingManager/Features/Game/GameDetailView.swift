@@ -63,8 +63,14 @@ struct GameDetailView: View {
         return min(maxHeight, pitchWidth / pitchAspectRatio)
     }
     
-    // Players from my team only
-    private var myTeamPlayers: [Player] {
+    // Players available for this game
+    private var gamePlayers: [Player] {
+        if game.hasSelectedPlayerSelection {
+            let selectedIds = Set(game.selectedPlayerIds)
+            return allPlayers
+                .filter { selectedIds.contains($0.id) }
+                .sorted { $0.number < $1.number }
+        }
         guard let myTeamId = game.myTeamId,
               let myTeam = teams.first(where: { $0.id == myTeamId }) else {
             return []
@@ -261,7 +267,7 @@ struct GameDetailView: View {
                 selectedCardType: $selectedCardType,
                 selectedCircleResult: $selectedCircleResult,
                 selectedGoalType: $selectedGoalType,
-                players: myTeamPlayers,
+                players: gamePlayers,
                 requirePlayerForInfractions: gameSettings.requirePlayerForInfractions,
                 requirePlayerForCircleEntry: gameSettings.requirePlayerForCircleEntry,
                 requirePlayerForTurnover: gameSettings.requirePlayerForTurnover,
@@ -759,7 +765,7 @@ struct GameDetailView: View {
                             ForEach(sortedRecentEvents) { event in
                                 EventListRowView(
                                     event: event,
-                                    players: myTeamPlayers,
+                                    players: gamePlayers,
                                     isHighlighted: highlightedEventId == event.id,
                                     isFaded: highlightedEventId != nil && highlightedEventId != event.id,
                                     onDelete: { deleteEvent(event) }
@@ -786,7 +792,7 @@ struct GameDetailView: View {
                             ForEach(sortedRecentEvents) { event in
                                 EventCardView(
                                     event: event,
-                                    players: myTeamPlayers,
+                                    players: gamePlayers,
                                     isHighlighted: highlightedEventId == event.id,
                                     isFaded: highlightedEventId != nil && highlightedEventId != event.id,
                                     onDelete: { deleteEvent(event) }
@@ -879,7 +885,7 @@ struct GameDetailView: View {
         currentStep = 0
         selectedEventType = .infraction
         selectedTeam = .ourTeam
-        selectedPlayerId = myTeamPlayers.first?.id
+        selectedPlayerId = gamePlayers.first?.id
         selectedInfraction = .minor
         selectedCardType = .none
         selectedCircleResult = .nothing

@@ -881,6 +881,7 @@ struct NewGameSheet: View {
     @State private var quarters: Int
     @State private var quarterMinutes: Int
     @State private var quarterSeconds: Int
+    @State private var selectedPlayerIds: Set<UUID> = []
     
     // Load defaults from saved game settings
     init(teams: [Team], onCreate: @escaping (Game) -> Void) {
@@ -912,6 +913,9 @@ struct NewGameSheet: View {
                 VStack(spacing: 24) {
                     // My Team Selection
                     myTeamSection
+
+                    // Player Selection
+                    playersSection
                     
                     // Opponent Name
                     opponentSection
@@ -992,12 +996,107 @@ struct NewGameSheet: View {
                         ) {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 selectedTeam = team
+                                selectedPlayerIds = Set(team.players.map { $0.id })
                             }
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.impactOccurred()
                         }
                     }
                 }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+        )
+    }
+
+    // MARK: - Players Section
+    private var playersSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "person.3.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.purple)
+                Text("Players")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+
+                Spacer()
+
+                if let selectedTeam {
+                    Text("\(selectedPlayerIds.count)/\(selectedTeam.players.count)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            if let selectedTeam {
+                if selectedTeam.players.isEmpty {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Add players to this team first")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.orange.opacity(0.1))
+                    )
+                } else {
+                    VStack(spacing: 6) {
+                        ForEach(selectedTeam.players.sorted { $0.number < $1.number }) { player in
+                            Button {
+                                if selectedPlayerIds.contains(player.id) {
+                                    selectedPlayerIds.remove(player.id)
+                                } else {
+                                    selectedPlayerIds.insert(player.id)
+                                }
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                            } label: {
+                                HStack(spacing: 12) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(selectedPlayerIds.contains(player.id) ? Color.blue : Color(.systemGray5))
+                                            .frame(width: 22, height: 22)
+                                        if selectedPlayerIds.contains(player.id) {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+
+                                    Text("#\(player.number)")
+                                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 36, alignment: .leading)
+
+                                    Text(player.name)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.primary)
+
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(.systemGray6).opacity(0.6))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            } else {
+                Text("Select a team to choose players for this game")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
             }
         }
         .padding(16)
@@ -1267,6 +1366,7 @@ struct NewGameSheet: View {
             quarterDuration: totalDurationSeconds,
             scheduledDate: isScheduledGame ? scheduledDate : nil
         )
+        game.selectedPlayerIds = Array(selectedPlayerIds)
         
         onCreate(game)
         dismiss()
@@ -1291,6 +1391,8 @@ struct EditGameSheet: View {
     @State private var quarters: Int = 4
     @State private var quarterMinutes: Int = 15
     @State private var quarterSeconds: Int = 0
+    @State private var selectedTeam: Team?
+    @State private var selectedPlayerIds: Set<UUID> = []
     
     var body: some View {
         NavigationStack {
@@ -1298,6 +1400,9 @@ struct EditGameSheet: View {
                 VStack(spacing: 24) {
                     // Teams Display
                     teamsSection
+
+                    // Player Selection
+                    playersSection
                     
                     // Opponent Name
                     opponentSection
@@ -1353,50 +1458,146 @@ struct EditGameSheet: View {
     private var teamsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "sportscourt.fill")
+                Image(systemName: "house.fill")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.blue)
-                Text("Match")
+                    .foregroundColor(.red)
+                Text("My Team")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
             }
-            
-            HStack(spacing: 16) {
-                // My Team
-                VStack(spacing: 4) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 48, height: 48)
-                        Text(String(game.myTeamName.prefix(2)).uppercased())
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    Text(game.myTeamName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .lineLimit(1)
+            if teams.isEmpty {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text("Create a team first in the Team tab")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
                 }
+                .padding(16)
                 .frame(maxWidth: .infinity)
-                
-                Text("vs")
-                    .font(.system(size: 14, weight: .bold))
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.orange.opacity(0.1))
+                )
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(teams) { team in
+                        TeamSelectionRow(
+                            team: team,
+                            isSelected: selectedTeam?.id == team.id
+                        ) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                selectedTeam = team
+                                selectedPlayerIds = Set(team.players.map { $0.id })
+                            }
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                        }
+                        .disabled(!canEditRoster)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
+        )
+    }
+
+    // MARK: - Players Section
+    private var playersSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "person.3.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.purple)
+                Text("Players")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+
+                Spacer()
+
+                if let selectedTeam {
+                    Text("\(selectedPlayerIds.count)/\(selectedTeam.players.count)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            if !canEditRoster {
+                HStack {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                    Text("Roster cannot be changed after game has started")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            } else if let selectedTeam {
+                if selectedTeam.players.isEmpty {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Add players to this team first")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.orange.opacity(0.1))
+                    )
+                } else {
+                    VStack(spacing: 6) {
+                        ForEach(selectedTeam.players.sorted { $0.number < $1.number }) { player in
+                            Button {
+                                if selectedPlayerIds.contains(player.id) {
+                                    selectedPlayerIds.remove(player.id)
+                                } else {
+                                    selectedPlayerIds.insert(player.id)
+                                }
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                            } label: {
+                                HStack(spacing: 12) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(selectedPlayerIds.contains(player.id) ? Color.blue : Color(.systemGray5))
+                                            .frame(width: 22, height: 22)
+                                        if selectedPlayerIds.contains(player.id) {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+
+                                    Text("#\(player.number)")
+                                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 36, alignment: .leading)
+
+                                    Text(player.name)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.primary)
+
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(.systemGray6).opacity(0.6))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            } else {
+                Text("Select a team to choose players for this game")
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.secondary)
-                
-                // Opponent
-                VStack(spacing: 4) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.blue)
-                            .frame(width: 48, height: 48)
-                        Text(String(opponentName.prefix(2)).uppercased())
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    Text(opponentName.isEmpty ? "Opponent" : opponentName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .lineLimit(1)
-                        .foregroundColor(opponentName.isEmpty ? .secondary : .primary)
-                }
-                .frame(maxWidth: .infinity)
             }
         }
         .padding(16)
@@ -1601,6 +1802,12 @@ struct EditGameSheet: View {
     }
     
     private func loadCurrentValues() {
+        selectedTeam = teams.first(where: { $0.id == game.myTeamId })
+        if game.hasSelectedPlayerSelection {
+            selectedPlayerIds = Set(game.selectedPlayerIds)
+        } else if let selectedTeam {
+            selectedPlayerIds = Set(selectedTeam.players.map { $0.id })
+        }
         opponentName = game.opponentName
         location = game.location
         scheduledDate = game.date
@@ -1612,8 +1819,13 @@ struct EditGameSheet: View {
     }
     
     private func saveChanges() {
+        if let selectedTeam {
+            game.myTeamId = selectedTeam.id
+            game.myTeamName = selectedTeam.name
+        }
         game.opponentName = opponentName
         game.location = location
+        game.selectedPlayerIds = Array(selectedPlayerIds)
         
         if !game.isGameActive && !game.isCompleted {
             if isScheduledGame {
@@ -1629,6 +1841,10 @@ struct EditGameSheet: View {
         
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
+    }
+
+    private var canEditRoster: Bool {
+        !game.isGameActive && !game.isCompleted
     }
 }
 

@@ -261,12 +261,34 @@ struct PitchView: View {
         return []
     }
     
-    // Filter players by selected team
-    private var filteredPlayers: [Player] {
-        if let selectedTeam = selectedTeam {
-            return selectedTeam.players
+    private var activeGamePlayers: [Player] {
+        guard let game = currentGame else { return [] }
+        if game.hasSelectedPlayerSelection {
+            let selectedIds = Set(game.selectedPlayerIds)
+            return players
+                .filter { selectedIds.contains($0.id) }
+                .sorted { $0.number < $1.number }
+        }
+        if let teamId = game.myTeamId,
+           let team = teams.first(where: { $0.id == teamId }) {
+            return team.players.sorted { $0.number < $1.number }
         }
         return players
+    }
+
+    private var noGamePlayers: [Player] {
+        if let selectedTeam = selectedTeam {
+            return selectedTeam.players.sorted { $0.number < $1.number }
+        }
+        return players
+    }
+
+    // Filter players by current game selection or default team
+    private var filteredPlayers: [Player] {
+        if currentGame != nil {
+            return activeGamePlayers
+        }
+        return noGamePlayers
     }
     
     var body: some View {
@@ -348,7 +370,7 @@ struct PitchView: View {
                     
                     // Play time tracker
                     NavigationLink(destination: PlayerTimeMinimalView(
-                        players: players,
+                        players: filteredPlayers,
                         pitchPlayers: pitchPlayers,
                         playerTimes: playerTotalTimes(for: game)
                     )) {
@@ -392,9 +414,11 @@ struct PitchView: View {
         .onAppear {
             selectedPitchPlayerForSwap = nil // Clear any stale state
             loadSavedPositions()
+            prunePitchPlayersToAvailable()
             loadQuarterTimes()
             loadGameSettings()
             syncPlayersOnPitchWithService()
+            prunePitchPlayersToAvailable()
             if gameTimer.isRunning {
                 playerTimeService.ensureActiveStints(
                     gameId: game.id,
@@ -445,6 +469,7 @@ struct PitchView: View {
                 // Load times for the new game (if any exist)
                 loadQuarterTimes()
                 syncPlayersOnPitchWithService()
+                prunePitchPlayersToAvailable()
             }
             previousGameId = newId
             if let updatedGame = currentGame {
@@ -524,7 +549,7 @@ struct PitchView: View {
 
                     // Play time tracker (disabled without a game)
                     NavigationLink(destination: PlayerTimeMinimalView(
-                        players: players,
+                        players: filteredPlayers,
                         pitchPlayers: pitchPlayers,
                         playerTimes: [:]
                     )) {
@@ -569,6 +594,7 @@ struct PitchView: View {
         .onAppear {
             selectedPitchPlayerForSwap = nil // Clear any stale state
             loadSavedPositions()
+            prunePitchPlayersToAvailable()
             loadGameSettings()
         }
         .onDisappear {
@@ -716,8 +742,9 @@ struct PitchView: View {
         guard let data = UserDefaults.standard.data(forKey: "pitchPlayers") else { return }
         do {
             let savedPlayers = try JSONDecoder().decode([SavedPitchPlayer].self, from: data)
+            let availablePlayers = filteredPlayers
             pitchPlayers = savedPlayers.compactMap { saved -> PitchPlayer? in
-                if let player = players.first(where: { $0.id == saved.playerId }) {
+                if let player = availablePlayers.first(where: { $0.id == saved.playerId }) {
                     return PitchPlayer(
                         id: saved.id,
                         player: player,
@@ -730,6 +757,15 @@ struct PitchView: View {
             }
         } catch {
             print("Failed to load positions: \(error)")
+        }
+    }
+
+    private func prunePitchPlayersToAvailable() {
+        let availableIds = Set(filteredPlayers.map { $0.id })
+        if pitchPlayers.contains(where: { !availableIds.contains($0.player.id) }) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                pitchPlayers.removeAll { !availableIds.contains($0.player.id) }
+            }
         }
     }
     
