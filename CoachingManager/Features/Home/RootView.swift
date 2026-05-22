@@ -30,7 +30,7 @@ struct RootView: View {
                 case .add:
                     AddEditView()
                 case .game:
-                    GameListView()
+                    GameListView(selectedTab: $selectedTab)
                 case .settings:
                     SettingsView()
                 }

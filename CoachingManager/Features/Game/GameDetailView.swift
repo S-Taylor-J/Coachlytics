@@ -185,13 +185,16 @@ struct GameDetailView: View {
                     // MARK: - Quarter Filter Pills
                     quarterFilterView
                         .padding(.horizontal, 20)
-                    
+
                     // MARK: - Team Filter Pills
                     FilterView(selectedTeam: $filterTeam, selectedEventType: $filterEventType, selectedCircleResult: $filterCircleResult)
+                    
                     
                     // MARK: - Pitch with tap gesture
                     pitchCard
                         .padding(.horizontal, 20)
+                        
+                    
                     
                     // MARK: - Analytics Section
                     analyticsSection
@@ -467,6 +470,7 @@ struct GameDetailView: View {
             QuickStatBadge(icon: "flag.fill", value: quarterEvents.count, label: "Events", color: .blue)
             QuickStatBadge(icon: "exclamationmark.triangle.fill", value: infractions, label: "Fouls", color: .orange)
             QuickStatBadge(icon: "circle.dashed", value: circleEntries, label: "Circles", color: .green)
+            QuickStatBadge(icon: "arrow.triangle.2.circlepath", value: quarterEvents.filter { $0.eventType == .turnover }.count, label: "Turnovers", color: .red)
             QuickStatBadge(icon: "soccerball", value: goals, label: "Goals", color: .purple)
         }
         .padding(.top, 8)
@@ -614,7 +618,7 @@ struct GameDetailView: View {
                 Spacer()
             }
             
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 AnalyticsStatCard(
                     title: "Events",
                     value: "\(filteredEvents.count)",
@@ -634,6 +638,13 @@ struct GameDetailView: View {
                     value: "\(filteredEvents.filter { $0.eventType == .circleEntry }.count)",
                     icon: "circle.dashed",
                     color: .green
+                )
+
+                AnalyticsStatCard(
+                    title: "Turnovers",
+                    value: "\(filteredEvents.filter { $0.eventType == .turnover }.count)",
+                    icon: "arrow.triangle.2.circlepath",
+                    color: .red
                 )
             }
             
@@ -2118,6 +2129,8 @@ struct QuickStatBadge: View {
                 .font(.system(size: 9, weight: .medium))
                 .foregroundColor(.secondary)
                 .textCase(.uppercase)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
     }

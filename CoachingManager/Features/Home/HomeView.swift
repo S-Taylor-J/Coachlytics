@@ -584,7 +584,7 @@ struct HomeView: View {
                 
                 if completedGames.count > 5 {
                     NavigationLink {
-                        GameListView()
+                        GameListView(selectedTab: .constant(.home))
                     } label: {
                         Text("See All")
                             .font(.system(size: 12, weight: .semibold, design: .rounded))

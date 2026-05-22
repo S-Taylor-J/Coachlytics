@@ -50,6 +50,7 @@ enum GameResultFilter: String, CaseIterable {
 
 // MARK: - Game List View
 struct GameListView: View {
+    @Binding var selectedTab: Tab
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \Game.date, order: .reverse) private var games: [Game]
@@ -68,6 +69,7 @@ struct GameListView: View {
     @State private var sortAscending = false
     @State private var searchText = ""
     @State private var isSearchFocused = false
+    @State private var hasAutoNavigated = false
     
     // Filtered and sorted games
     private var filteredGames: [Game] {
@@ -186,6 +188,22 @@ struct GameListView: View {
                 GameDetailView(game: game)
             }
         }
+        .onAppear {
+            autoNavigateToActiveGameIfNeeded()
+        }
+        .onChange(of: selectedTab) { newValue in
+            if newValue != .game {
+                hasAutoNavigated = false
+                return
+            }
+            autoNavigateToActiveGameIfNeeded()
+        }
+    }
+
+    private func autoNavigateToActiveGameIfNeeded() {
+        guard selectedTab == .game, !hasAutoNavigated, let activeGame = activeGameForAutoNav else { return }
+        hasAutoNavigated = true
+        selectedGame = activeGame
     }
     
     // MARK: - Compact Filter Bar
@@ -345,6 +363,13 @@ struct GameListView: View {
     
     private var activeGames: [Game] {
         games.filter { !$0.isCompleted && !$0.isScheduled }
+    }
+
+    private var activeGameForAutoNav: Game? {
+        games
+            .filter { $0.isGameActive && !$0.isCompleted }
+            .sorted { $0.date > $1.date }
+            .first
     }
     private var filteredCompletedGames: [Game] {
         filteredGames.filter { $0.isCompleted }
@@ -2003,6 +2028,6 @@ private struct CardSurface: View {
 }
 
 #Preview {
-    GameListView()
+    GameListView(selectedTab: .constant(.game))
         .modelContainer(for: [Game.self, Team.self, Player.self], inMemory: true)
 }
