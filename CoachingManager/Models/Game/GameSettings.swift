@@ -101,7 +101,7 @@ struct CircleResultSettings: Codable, Equatable {
 }
 
 // MARK: - Game Settings
-struct GameSettings: Codable {
+struct GameSettings: Codable, Equatable {
     var quarters: Int = 4
     var quarterDuration: Int = 900 // stored in seconds (default 15 min = 900 sec)
     var halfTimeDuration: Int = 5 // minutes

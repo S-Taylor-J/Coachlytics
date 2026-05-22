@@ -18,7 +18,7 @@ struct SettingsView: View {
     @AppStorage("defaultTeamId") private var defaultTeamId: String = ""
     @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
     @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
-     @AppStorage("showPlayerTimers") private var showPlayerTimers = false
+    @AppStorage("showPlayerTimers") private var showPlayerTimers = false
     
     @Query(sort: \Team.name) private var teams: [Team]
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
@@ -70,7 +70,7 @@ struct SettingsView: View {
                 eventRecordingSection
                 eventMarkersSection
                 teamColorsSection
-                saveResetSection
+                resetSection
             }
             .contentMargins(.bottom, 100, for: .scrollContent)
             .scrollContentBackground(.hidden)
@@ -96,6 +96,9 @@ struct SettingsView: View {
             }
             .onChange(of: selectedSkills) {
                 saveSelectedSkills()
+            }
+            .onChange(of: gameSettings) {
+                saveSettings()
             }
             .onChange(of: circleResultSettings) {
                 circleResultSettings.saveToDefaults()
@@ -352,22 +355,9 @@ struct SettingsView: View {
         }
     }
 
-    private var saveResetSection: some View {
+    private var resetSection: some View {
         Section {
             SettingsSectionCard(accent: brandAccent) {
-                Button {
-                    saveSettings()
-                } label: {
-                    HStack {
-                        Spacer()
-                        Label("Save Settings", systemImage: "checkmark.circle.fill")
-                        Spacer()
-                    }
-                }
-                .disabled(!settingsChanged())
-
-                Divider()
-
                 Button(role: .destructive) {
                     showResetConfirmation = true
                 } label: {
@@ -410,6 +400,7 @@ struct SettingsView: View {
         }
     }
 
+
     private func resetToDefaults() {
         minPlayersOnPitch = 11
         enableSkillFilter = false
@@ -444,19 +435,6 @@ struct SettingsView: View {
         }
     }
 
-    private func settingsChanged() -> Bool {
-        // Check if current settings differ from saved ones
-        guard let data = gameSettingsData.data(using: String.Encoding.utf8),
-              let savedSettings = try? JSONDecoder().decode(GameSettings.self, from: data) else {
-            return true
-        }
-        return gameSettings.quarters != savedSettings.quarters ||
-               gameSettings.quarterDuration != savedSettings.quarterDuration ||
-               gameSettings.halfTimeDuration != savedSettings.halfTimeDuration ||
-               gameSettings.requirePlayerForInfractions != savedSettings.requirePlayerForInfractions ||
-               gameSettings.requirePlayerForCircleEntry != savedSettings.requirePlayerForCircleEntry ||
-               gameSettings.requirePlayerForTurnover != savedSettings.requirePlayerForTurnover
-    }
 }
 
 private struct SettingsSectionCard<Content: View>: View {
@@ -485,6 +463,7 @@ private struct SettingsSectionCard<Content: View>: View {
         )
     }
 }
+
 
 // MARK: - Skills Management View
 struct SkillsManagementView: View {
