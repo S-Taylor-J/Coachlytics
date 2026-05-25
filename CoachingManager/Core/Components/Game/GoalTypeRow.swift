@@ -13,6 +13,7 @@ struct GoalTypeRow: View {
     let count: Int
     let total: Int
     let color: Color
+    @Environment(\.colorScheme) private var colorScheme
     
     private var percentage: Double {
         guard total > 0 else { return 0 }
@@ -23,13 +24,13 @@ struct GoalTypeRow: View {
         HStack(spacing: 12) {
             Text(type)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.primary)
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.82) : .primary)
                 .frame(width: 100, alignment: .leading)
             
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(.systemGray5))
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.10) : Color(.systemGray5))
                         .frame(height: 8)
                     
                     RoundedRectangle(cornerRadius: 4)
@@ -51,6 +52,7 @@ struct GoalTypeRow: View {
 /// Row showing game goals
 struct GoalGameRow: View {
     let game: Game
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         HStack(spacing: 12) {
@@ -67,22 +69,27 @@ struct GoalGameRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("vs \(game.opponentName)")
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(colorScheme == .dark ? .white : .primary)
                 
                 Text(game.shortDate)
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.52) : .secondary)
             }
             
             Spacer()
             
             Text("\(game.myTeamScore) - \(game.opponentScore)")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundColor(.primary)
+                .foregroundColor(colorScheme == .dark ? .white : .primary)
         }
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemGray6).opacity(0.5))
+                .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color(.systemGray6).opacity(0.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.08) : Color.clear, lineWidth: 1)
+                )
         )
     }
 }

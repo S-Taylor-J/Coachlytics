@@ -46,6 +46,14 @@ struct TeamStatsSheet: View {
     private var goalDifference: Int {
         totalGoalsFor - totalGoalsAgainst
     }
+
+    private var goalsPerGameFor: Double {
+        games.isEmpty ? 0 : Double(totalGoalsFor) / Double(games.count)
+    }
+
+    private var goalsPerGameAgainst: Double {
+        games.isEmpty ? 0 : Double(totalGoalsAgainst) / Double(games.count)
+    }
     
     private var totalCircleEntries: Int {
         games.flatMap { $0.events }.filter { $0.eventType == .circleEntry && $0.team == .ourTeam }.count
@@ -153,103 +161,170 @@ struct TeamStatsSheet: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    teamHeader
-                    tabPicker
-                    
-                    switch selectedTab {
-                    case 0:
-                        overviewSection
-                    case 1:
-                        goalsSection
-                    case 2:
-                        leaderboardsSection
-                    default:
-                        overviewSection
+            ZStack {
+                backgroundGradient
+                    .ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 22) {
+                        teamHeader
+                        tabPicker
+
+                        switch selectedTab {
+                        case 0:
+                            overviewSection
+                        case 1:
+                            goalsSection
+                        case 2:
+                            leaderboardsSection
+                        default:
+                            overviewSection
+                        }
                     }
+                    .padding(20)
+                    .padding(.bottom, 28)
                 }
-                .padding(20)
             }
-            .background(backgroundColor)
-            .navigationTitle("Team Stats")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .black))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 34)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.10))
+                                    .overlay(Circle().stroke(Color.white.opacity(0.10), lineWidth: 1))
+                            )
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
+        .preferredColorScheme(.dark)
     }
     
     // MARK: - Team Header
     private var teamHeader: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 70, height: 70)
-                
-                Image(systemName: "sportscourt.fill")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.white)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(teamName)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                
-                Text("\(games.count) games played")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
-                
-                HStack(spacing: 8) {
-                    StatPill(value: "\(wins)W", color: .green)
-                    StatPill(value: "\(draws)D", color: .gray)
-                    StatPill(value: "\(losses)L", color: .red)
+        ZStack(alignment: .topTrailing) {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.055, green: 0.085, blue: 0.145),
+                            Color(red: 0.034, green: 0.075, blue: 0.155),
+                            Color(red: 0.014, green: 0.145, blue: 0.320)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [brandAccent.opacity(0.64), Color.white.opacity(0.10), positiveGreen.opacity(0.22)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: brandAccent.opacity(0.24), radius: 26, x: 0, y: 14)
+
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [brandAccent, Color(red: 0.17, green: 0.35, blue: 1.0)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 68, height: 68)
+                            .shadow(color: brandAccent.opacity(0.34), radius: 16, x: 0, y: 10)
+
+                        Text(teamInitials)
+                            .font(.system(size: 22, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Team Analytics")
+                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .tracking(1.1)
+                            .foregroundStyle(brandAccent)
+
+                        Text(teamName)
+                            .font(.system(size: 28, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.74)
+
+                        Text("\(games.count) games • \(teamPlayers.count) players")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(textMuted)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+
+                HStack(spacing: 10) {
+                    recordChip(value: "\(wins)W", tint: positiveGreen)
+                    recordChip(value: "\(draws)D", tint: Color.white.opacity(0.48))
+                    recordChip(value: "\(losses)L", tint: negativeRed)
+                    Spacer()
+                    Text(String(format: "%.0f%% win", winPercentage))
+                        .font(.system(size: 13, weight: .black, design: .rounded))
+                        .foregroundStyle(positiveGreen)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(positiveGreen.opacity(0.13)))
                 }
             }
-            
-            Spacer()
+            .padding(20)
         }
-        .padding(16)
-        .background(cardSurface(accent: .accentColor))
     }
     
     // MARK: - Tab Picker
     private var tabPicker: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 6) {
             ForEach(0..<3) { index in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
                         selectedTab = index
                     }
                 } label: {
-                    VStack(spacing: 6) {
-                        Text(tabTitle(for: index))
-                            .font(.system(size: 13, weight: selectedTab == index ? .semibold : .medium, design: .rounded))
-                            .foregroundColor(selectedTab == index ? .blue : .secondary)
-                        
-                        Rectangle()
-                            .fill(selectedTab == index ? Color.blue : Color.clear)
-                            .frame(height: 2)
-                    }
+                    Text(tabTitle(for: index))
+                        .font(.system(size: 13, weight: selectedTab == index ? .black : .bold, design: .rounded))
+                        .foregroundStyle(selectedTab == index ? .white : textMuted)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(
+                            Capsule()
+                                .fill(selectedTab == index ? brandAccent.opacity(0.22) : Color.clear)
+                                .overlay(
+                                    Capsule()
+                                        .stroke(selectedTab == index ? brandAccent.opacity(0.30) : Color.clear, lineWidth: 1)
+                                )
+                        )
                 }
-                .frame(maxWidth: .infinity)
+                .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
+        .padding(5)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
-                )
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.1), radius: 8, x: 0, y: 4)
+            Capsule()
+                .fill(Color.white.opacity(0.07))
+                .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 1))
         )
     }
     
@@ -265,134 +340,52 @@ struct TeamStatsSheet: View {
     // MARK: - Overview Section
     private var overviewSection: some View {
         VStack(spacing: 16) {
-            // Win rate card
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Win Rate")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    Spacer()
+            VStack(alignment: .leading, spacing: 16) {
+                sectionTitle("Performance")
+
+                LazyVGrid(columns: statGridColumns, spacing: 12) {
+                    TeamStatTile(title: "Win Rate", value: String(format: "%.0f%%", winPercentage), subtitle: "\(games.count) games", icon: "trophy.fill", tint: positiveGreen)
+                    TeamStatTile(title: "Goal Diff", value: goalDifference >= 0 ? "+\(goalDifference)" : "\(goalDifference)", subtitle: "\(totalGoalsFor) for / \(totalGoalsAgainst) against", icon: "plus.forwardslash.minus", tint: goalDifference >= 0 ? positiveGreen : negativeRed)
+                    TeamStatTile(title: "Scored", value: "\(totalGoalsFor)", subtitle: String(format: "%.1f per game", goalsPerGameFor), icon: "scope", tint: brandAccent)
+                    TeamStatTile(title: "Conceded", value: "\(totalGoalsAgainst)", subtitle: String(format: "%.1f per game", goalsPerGameAgainst), icon: "shield.lefthalf.filled", tint: negativeRed)
                 }
-                
-                HStack(alignment: .bottom, spacing: 8) {
-                    Text(String(format: "%.0f%%", winPercentage))
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .foregroundColor(.green)
-                    
-                    Text("of \(games.count) games")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .padding(.bottom, 8)
-                    
-                    Spacer()
-                }
-                
-                // Win rate bar
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color(.systemGray5))
-                            .frame(height: 8)
-                        
-                        HStack(spacing: 0) {
-                            Rectangle()
-                                .fill(Color.green)
-                                .frame(width: geo.size.width * CGFloat(wins) / max(CGFloat(games.count), 1), height: 8)
-                            
-                            Rectangle()
-                                .fill(Color.gray)
-                                .frame(width: geo.size.width * CGFloat(draws) / max(CGFloat(games.count), 1), height: 8)
-                            
-                            Rectangle()
-                                .fill(Color.red)
-                                .frame(width: geo.size.width * CGFloat(losses) / max(CGFloat(games.count), 1), height: 8)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                    }
-                }
-                .frame(height: 8)
+
+                segmentedRecordBar
             }
             .padding(16)
-            .background(cardSurface(accent: .green))
-            
-            // Goals overview
+            .background(cardSurface(accent: brandAccent))
+
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Goals")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    Spacer()
-                }
-                
-                HStack(spacing: 16) {
-                    VStack(spacing: 4) {
-                        Text("\(totalGoalsFor)")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .foregroundColor(.purple)
-                        Text("Scored")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    VStack(spacing: 4) {
-                        Text("\(totalGoalsAgainst)")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .foregroundColor(.red)
-                        Text("Conceded")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    VStack(spacing: 4) {
-                        Text(goalDifference >= 0 ? "+\(goalDifference)" : "\(goalDifference)")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .foregroundColor(goalDifference >= 0 ? .green : .red)
-                        Text("Difference")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            .padding(16)
-            .background(cardSurface(accent: .purple))
-            
-            // Other stats
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Season Totals")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    Spacer()
-                }
+                sectionTitle("Season Totals")
 
                 VStack(spacing: 14) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("For Us")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 12, weight: .black, design: .rounded))
+                            .foregroundStyle(textMuted)
 
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            StatBox(title: "Goals For", value: "\(totalGoalsFor)", color: .green)
-                            StatBox(title: "Goals / Game", value: String(format: "%.1f", games.count > 0 ? Double(totalGoalsFor) / Double(games.count) : 0), color: .purple)
-                            StatBox(title: "Circle Entries", value: "\(totalCircleEntries)", color: .blue)
-                            StatBox(title: "Infractions", value: "\(totalInfractions)", color: .orange)
-                            StatBox(title: "Short Corners", value: "\(shortCornersFor)", color: .teal)
-                            StatBox(title: "SC Goals", value: "\(shortCornerGoalsFor)", color: .pink)
+                            CompactTeamStat(title: "Goals For", value: "\(totalGoalsFor)", tint: positiveGreen)
+                            CompactTeamStat(title: "Goals / Game", value: String(format: "%.1f", goalsPerGameFor), tint: brandAccent)
+                            CompactTeamStat(title: "Circle Entries", value: "\(totalCircleEntries)", tint: Color(red: 0.22, green: 0.82, blue: 1.0))
+                            CompactTeamStat(title: "Infractions", value: "\(totalInfractions)", tint: warningOrange)
+                            CompactTeamStat(title: "Short Corners", value: "\(shortCornersFor)", tint: Color(red: 0.20, green: 0.86, blue: 0.76))
+                            CompactTeamStat(title: "SC Goals", value: "\(shortCornerGoalsFor)", tint: Color(red: 0.90, green: 0.45, blue: 1.0))
                         }
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Against Us")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 12, weight: .black, design: .rounded))
+                            .foregroundStyle(textMuted)
 
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            StatBox(title: "Goals Against", value: "\(totalGoalsAgainst)", color: .red)
-                            StatBox(title: "Goals / Game", value: String(format: "%.1f", games.count > 0 ? Double(totalGoalsAgainst) / Double(games.count) : 0), color: .purple)
-                            StatBox(title: "Circle Entries", value: "\(totalCircleEntriesAgainst)", color: .blue)
-                            StatBox(title: "Infractions", value: "\(totalOpponentInfractions)", color: .orange)
-                            StatBox(title: "Short Corners", value: "\(shortCornersAgainst)", color: .teal)
-                            StatBox(title: "SC Goals", value: "\(shortCornerGoalsAgainst)", color: .pink)
+                            CompactTeamStat(title: "Goals Against", value: "\(totalGoalsAgainst)", tint: negativeRed)
+                            CompactTeamStat(title: "Goals / Game", value: String(format: "%.1f", goalsPerGameAgainst), tint: brandAccent)
+                            CompactTeamStat(title: "Circle Entries", value: "\(totalCircleEntriesAgainst)", tint: Color(red: 0.22, green: 0.82, blue: 1.0))
+                            CompactTeamStat(title: "Infractions", value: "\(totalOpponentInfractions)", tint: warningOrange)
+                            CompactTeamStat(title: "Short Corners", value: "\(shortCornersAgainst)", tint: Color(red: 0.20, green: 0.86, blue: 0.76))
+                            CompactTeamStat(title: "SC Goals", value: "\(shortCornerGoalsAgainst)", tint: Color(red: 0.90, green: 0.45, blue: 1.0))
                         }
                     }
                 }
@@ -405,14 +398,9 @@ struct TeamStatsSheet: View {
     // MARK: - Goals Section
     private var goalsSection: some View {
         VStack(spacing: 16) {
-            // Goal types breakdown
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Goal Types")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    Spacer()
-                }
-                
+                sectionTitle("Goal Types")
+
                 VStack(spacing: 10) {
                     GoalTypeRow(type: "Open Play", count: goalsFromOpenPlay, total: totalGoalsFor, color: .blue)
                     GoalTypeRow(type: "Penalty Corner", count: goalsFromPenaltyCorner, total: totalGoalsFor, color: .orange)
@@ -420,22 +408,17 @@ struct TeamStatsSheet: View {
                 }
             }
             .padding(16)
-            .background(cardSurface(accent: .purple))
-            
-            // Game by game goals
+            .background(cardSurface(accent: brandAccent))
+
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Goals per Game")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    Spacer()
-                }
-                
+                sectionTitle("Goals per Game")
+
                 if games.isEmpty {
                     HStack {
                         Spacer()
                         Text("No games yet")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(textMuted)
                             .padding(.vertical, 20)
                         Spacer()
                     }
@@ -448,45 +431,298 @@ struct TeamStatsSheet: View {
                 }
             }
             .padding(16)
-            .background(cardSurface(accent: .orange))
+            .background(cardSurface(accent: warningOrange))
         }
     }
     
     // MARK: - Leaderboards Section
     private var leaderboardsSection: some View {
         VStack(spacing: 16) {
-            LeaderboardCard(
-                title: "Top Scorers",
-                icon: "",
-                color: .purple,
-                items: topScorersItems
-            )
-            
-            LeaderboardCard(
-                title: "Most Circle Entries",
-                icon: "",
-                color: .green,
-                items: topCircleEntriesItems
-            )
+            premiumLeaderboard(title: "Top Scorers", icon: "scope", tint: brandAccent, items: topScorersItems)
+            premiumLeaderboard(title: "Most Circle Entries", icon: "arrow.up.forward.circle.fill", tint: positiveGreen, items: topCircleEntriesItems)
         }
     }
 
     // MARK: - Styling Helpers
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
+    private var backgroundGradient: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.015, green: 0.026, blue: 0.045),
+                    Color(red: 0.034, green: 0.052, blue: 0.086),
+                    Color(red: 0.015, green: 0.018, blue: 0.030)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            LinearGradient(
+                colors: [
+                    brandAccent.opacity(0.13),
+                    Color.clear,
+                    positiveGreen.opacity(0.05)
+                ],
+                startPoint: .topTrailing,
+                endPoint: .bottomLeading
+            )
+        }
+    }
+
+    private var statGridColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: 12),
+            GridItem(.flexible(), spacing: 12)
+        ]
+    }
+
+    private var brandAccent: Color {
+        Color(red: 0.42, green: 0.70, blue: 1.0)
+    }
+
+    private var positiveGreen: Color {
+        Color(red: 0.16, green: 0.92, blue: 0.59)
+    }
+
+    private var warningOrange: Color {
+        Color(red: 1.0, green: 0.62, blue: 0.22)
+    }
+
+    private var negativeRed: Color {
+        Color(red: 1.0, green: 0.36, blue: 0.32)
+    }
+
+    private var textMuted: Color {
+        Color.white.opacity(0.54)
+    }
+
+    private var teamInitials: String {
+        let words = teamName.split(separator: " ")
+        let initials = words.prefix(2).compactMap { $0.first }.map(String.init).joined()
+        return initials.isEmpty ? "CL" : initials.uppercased()
+    }
+
+    private var segmentedRecordBar: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Record Split")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundStyle(textMuted)
+                Spacer()
+                Text("\(wins)-\(draws)-\(losses)")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.82))
+            }
+
+            GeometryReader { geo in
+                HStack(spacing: 3) {
+                    Rectangle()
+                        .fill(positiveGreen)
+                        .frame(width: geo.size.width * CGFloat(wins) / max(CGFloat(games.count), 1), height: 10)
+
+                    Rectangle()
+                        .fill(Color.white.opacity(0.34))
+                        .frame(width: geo.size.width * CGFloat(draws) / max(CGFloat(games.count), 1), height: 10)
+
+                    Rectangle()
+                        .fill(negativeRed)
+                        .frame(width: geo.size.width * CGFloat(losses) / max(CGFloat(games.count), 1), height: 10)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white.opacity(0.08))
+                .clipShape(Capsule())
+            }
+            .frame(height: 10)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.black.opacity(0.18))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 18, weight: .black, design: .rounded))
+                .foregroundStyle(.white)
+            Spacer()
+        }
+    }
+
+    private func recordChip(value: String, tint: Color) -> some View {
+        Text(value)
+            .font(.system(size: 12, weight: .black, design: .rounded))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(tint.opacity(0.16))
+                    .overlay(Capsule().stroke(tint.opacity(0.18), lineWidth: 1))
+            )
+    }
+
+    private func premiumLeaderboard(title: String, icon: String, tint: Color, items: [(Player, String, Int)]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .black))
+                    .foregroundStyle(tint)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(tint.opacity(0.14)))
+
+                sectionTitle(title)
+            }
+
+            if items.isEmpty {
+                Text("No player data yet")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(textMuted)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(Array(items.enumerated()), id: \.element.0.id) { index, item in
+                        HStack(spacing: 12) {
+                            Text("\(index + 1)")
+                                .font(.system(size: 12, weight: .black, design: .rounded))
+                                .foregroundStyle(tint)
+                                .frame(width: 28, height: 28)
+                                .background(Circle().fill(tint.opacity(0.14)))
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(item.0.name)
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                                Text("#\(item.0.number)")
+                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(textMuted)
+                            }
+
+                            Spacer()
+
+                            Text(item.1)
+                                .font(.system(size: 13, weight: .black, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.86))
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color.white.opacity(0.055))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                )
+                        )
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(cardSurface(accent: tint))
     }
 
     private func cardSurface(accent: Color) -> some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
             .fill(.ultraThinMaterial)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color.white.opacity(0.060))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(accent.opacity(0.22), lineWidth: 1)
             )
-            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
+            .shadow(color: Color.black.opacity(0.24), radius: 16, x: 0, y: 10)
+    }
+}
+
+private struct TeamStatTile: View {
+    let title: String
+    let value: String
+    let subtitle: String
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .black))
+                    .foregroundStyle(tint)
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(tint.opacity(0.14)))
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value)
+                    .font(.system(size: 27, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                Text(title)
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.74))
+
+                Text(subtitle)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.44))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 124, alignment: .topLeading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.060))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(tint.opacity(0.16), lineWidth: 1)
+                )
+        )
+    }
+}
+
+private struct CompactTeamStat: View {
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(tint)
+                .frame(width: 7, height: 7)
+                .shadow(color: tint.opacity(0.55), radius: 6, x: 0, y: 0)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(value)
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                Text(title)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.48))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .fill(Color.white.opacity(0.052))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                )
+        )
     }
 }
