@@ -63,25 +63,27 @@ struct AddPlayerSheet: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Player Info Card
-                    playerInfoSection
-                    
-                    // Team Section
-                    teamSection
-                    
-                    // Position Section
-                    positionSection
-                    
-                    // Skills Section
-                    skillsSection
+            ZStack {
+                backgroundGradient
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 24) {
+                        sheetHero
+                        playerInfoSection
+
+                        teamSection
+
+                        positionSection
+
+                        skillsSection
+                    }
+                    .padding()
                 }
-                .padding()
             }
-            .background(backgroundColor)
             .navigationTitle("New Player")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -111,6 +113,44 @@ struct AddPlayerSheet: View {
     }
     
     // MARK: - Player Info Section
+    private var sheetHero: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color(red: 0.17, green: 0.35, blue: 1.0)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 64, height: 64)
+                    .shadow(color: Color.accentColor.opacity(0.28), radius: 16, x: 0, y: 10)
+
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .font(.system(size: 25, weight: .bold))
+                    .foregroundColor(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Roster Builder")
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .tracking(1.1)
+                    .foregroundStyle(Color.accentColor)
+                Text("Add Player")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundStyle(primaryText)
+                Text("Create a profile with team, positions, and skills")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(textMuted)
+            }
+
+            Spacer()
+        }
+        .padding(18)
+        .background(cardSurface(accent: .accentColor))
+    }
+
     private var playerInfoSection: some View {
         VStack(spacing: 16) {
             // Section Header
@@ -414,27 +454,79 @@ struct AddPlayerSheet: View {
         colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
 
+    private var backgroundGradient: some View {
+        ZStack {
+            LinearGradient(
+                colors: colorScheme == .dark ? [
+                    Color(red: 0.015, green: 0.026, blue: 0.045),
+                    Color(red: 0.034, green: 0.052, blue: 0.086),
+                    Color(red: 0.015, green: 0.018, blue: 0.030)
+                ] : [
+                    Color(red: 0.965, green: 0.980, blue: 1.000),
+                    Color(red: 0.925, green: 0.950, blue: 0.990),
+                    Color(red: 0.985, green: 0.990, blue: 1.000)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            LinearGradient(
+                colors: [
+                    Color.accentColor.opacity(colorScheme == .dark ? 0.14 : 0.16),
+                    Color.clear,
+                    Color.green.opacity(colorScheme == .dark ? 0.05 : 0.10)
+                ],
+                startPoint: .topTrailing,
+                endPoint: .bottomLeading
+            )
+        }
+    }
+
+    private var primaryText: Color {
+        colorScheme == .dark ? .white : Color(red: 0.035, green: 0.055, blue: 0.090)
+    }
+
+    private var textMuted: Color {
+        colorScheme == .dark ? Color.white.opacity(0.54) : Color(red: 0.45, green: 0.50, blue: 0.60)
+    }
+
+    private var surfaceFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.065) : Color.white.opacity(0.86)
+    }
+
+    private var fieldFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.060) : Color.white.opacity(0.78)
+    }
+
+    private var strokeColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.10) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.24)
+    }
+
     private var fieldSurface: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
             .fill(.ultraThinMaterial)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+                    .fill(fieldFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(strokeColor, lineWidth: 1)
             )
     }
 
     private func cardSurface(accent: Color) -> some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
             .fill(.ultraThinMaterial)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(surfaceFill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(accent.opacity(0.22), lineWidth: 1)
             )
-            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 14, x: 0, y: 8)
     }
     
     private func savePlayer() {
@@ -467,6 +559,7 @@ struct PositionChip: View {
     let isSelected: Bool
     var isCustom: Bool = false
     let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Button(action: action) {
@@ -487,17 +580,21 @@ struct PositionChip: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .padding(.horizontal, 12)
-            .background(isSelected ? Color.blue.opacity(0.15) : Color(.systemBackground))
-            .foregroundStyle(isSelected ? .blue : .primary)
+            .background(isSelected ? Color.blue.opacity(0.15) : surfaceFill)
+            .foregroundStyle(isSelected ? .blue : primaryText)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.blue : Color.gray.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+                    .stroke(isSelected ? Color.blue : strokeColor, lineWidth: isSelected ? 2 : 1)
             )
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
+
+    private var primaryText: Color { colorScheme == .dark ? .white : Color(red: 0.04, green: 0.06, blue: 0.10) }
+    private var surfaceFill: Color { colorScheme == .dark ? Color.white.opacity(0.060) : Color.white.opacity(0.78) }
+    private var strokeColor: Color { colorScheme == .dark ? Color.white.opacity(0.10) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.24) }
 }
 
 // MARK: - Skill Tag Component
@@ -506,6 +603,7 @@ struct SkillTag: View {
     let isSelected: Bool
     var isCustom: Bool = false
     let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Button(action: action) {
@@ -520,17 +618,21 @@ struct SkillTag: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(isSelected ? Color.blue : Color(.systemBackground))
-            .foregroundStyle(isSelected ? .white : .primary)
+            .background(isSelected ? Color.blue : surfaceFill)
+            .foregroundStyle(isSelected ? .white : primaryText)
             .cornerRadius(20)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color.blue : Color.gray.opacity(0.3), lineWidth: 1)
+                    .stroke(isSelected ? Color.blue : strokeColor, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
+
+    private var primaryText: Color { colorScheme == .dark ? .white : Color(red: 0.04, green: 0.06, blue: 0.10) }
+    private var surfaceFill: Color { colorScheme == .dark ? Color.white.opacity(0.060) : Color.white.opacity(0.78) }
+    private var strokeColor: Color { colorScheme == .dark ? Color.white.opacity(0.10) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.24) }
 }
 
 // MARK: - Flow Layout for Skills

@@ -25,28 +25,27 @@ struct CreateTeamSheet: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 28) {
-                    // Team Preview Card
-                    teamPreviewCard
-                        .padding(.top, 12)
-                    
-                    // Team Name Input
-                    teamNameSection
-                    
-                    // Color Selection
-//                    colorSelectionSection
-                    
-                    // Tips Section
-                    tipsSection
-                    
-                    Spacer(minLength: 40)
+            ZStack {
+                backgroundGradient
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 28) {
+                        teamPreviewCard
+                            .padding(.top, 12)
+
+                        teamNameSection
+
+                        tipsSection
+
+                        Spacer(minLength: 40)
+                    }
+                    .padding(.horizontal, 20)
                 }
-                .padding(.horizontal, 20)
             }
-            .background(backgroundColor)
             .navigationTitle("Create Team")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -86,8 +85,8 @@ struct CreateTeamSheet: View {
             
             VStack(spacing: 6) {
                 Text(teamName.isEmpty ? "Team Name" : teamName)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(teamName.isEmpty ? .secondary : .primary)
+                    .font(.system(size: 26, weight: .black, design: .rounded))
+                    .foregroundColor(teamName.isEmpty ? textMuted : primaryText)
                     .lineLimit(1)
                 
                 Text("0 players")
@@ -115,13 +114,13 @@ struct CreateTeamSheet: View {
                         .fill(.ultraThinMaterial)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+                                .fill(surfaceFill)
                         )
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .strokeBorder(
-                            teamName.isEmpty ? Color(.systemGray4) : Color.accentColor,
+                            teamName.isEmpty ? strokeColor : Color.accentColor,
                             lineWidth: teamName.isEmpty ? 1 : 2
                         )
                 )
@@ -217,7 +216,7 @@ struct CreateTeamSheet: View {
                     .fill(.ultraThinMaterial)
                     .background(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+                            .fill(surfaceFill)
                     )
             )
         }
@@ -227,18 +226,62 @@ struct CreateTeamSheet: View {
         colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
 
+    private var backgroundGradient: some View {
+        ZStack {
+            LinearGradient(
+                colors: colorScheme == .dark ? [
+                    Color(red: 0.015, green: 0.026, blue: 0.045),
+                    Color(red: 0.034, green: 0.052, blue: 0.086),
+                    Color(red: 0.015, green: 0.018, blue: 0.030)
+                ] : [
+                    Color(red: 0.965, green: 0.980, blue: 1.000),
+                    Color(red: 0.925, green: 0.950, blue: 0.990),
+                    Color(red: 0.985, green: 0.990, blue: 1.000)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            LinearGradient(
+                colors: [
+                    Color.accentColor.opacity(colorScheme == .dark ? 0.14 : 0.16),
+                    Color.clear,
+                    Color.green.opacity(colorScheme == .dark ? 0.05 : 0.10)
+                ],
+                startPoint: .topTrailing,
+                endPoint: .bottomLeading
+            )
+        }
+    }
+
+    private var primaryText: Color {
+        colorScheme == .dark ? .white : Color(red: 0.035, green: 0.055, blue: 0.090)
+    }
+
+    private var textMuted: Color {
+        colorScheme == .dark ? Color.white.opacity(0.54) : Color(red: 0.45, green: 0.50, blue: 0.60)
+    }
+
+    private var surfaceFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.065) : Color.white.opacity(0.86)
+    }
+
+    private var strokeColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.10) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.24)
+    }
+
     private func cardSurface(accent: Color) -> some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
             .fill(.ultraThinMaterial)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(surfaceFill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(accent.opacity(0.22), lineWidth: 1)
             )
-            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 14, x: 0, y: 8)
     }
     
     private func tipRow(icon: String, title: String, description: String, iconColor: Color) -> some View {

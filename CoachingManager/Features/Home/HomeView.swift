@@ -101,7 +101,7 @@ struct HomeView: View {
                         premiumScheduleSection
 
                         premiumCalendarSection
-                        
+
                         recentActivitySection
 
                         quickActionsSection
@@ -352,11 +352,11 @@ struct HomeView: View {
             dashboardSectionHeader(
                 title: "Upcoming Schedule",
                 subtitle: "Next training and match",
-                ctaTitle: "Calendar",
-                ctaIcon: "calendar"
-            ) {
-                showAddNoteSheet = true
-            }
+                // ctaTitle: "Calendar",
+                // ctaIcon: "calendar"
+             ) //{
+            //     showAddNoteSheet = true
+            // }
 
             VStack(spacing: 10) {
                 ScheduleTimelineCard(
@@ -404,20 +404,20 @@ struct HomeView: View {
                 GameListView(selectedTab: .constant(.game))
             } label: {
                 HStack(spacing: 8) {
-                    Text("View full calendar")
+                    Text("View full Schedule")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                     Image(systemName: "arrow.right")
                         .font(.system(size: 13, weight: .bold))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(primaryText)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.white.opacity(0.08))
+                        .fill(themeSurfaceFill)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                .stroke(themeStroke, lineWidth: 1)
                         )
                 )
             }
@@ -444,16 +444,16 @@ struct HomeView: View {
                 .padding(16)
                 .background(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(Color.white.opacity(0.065))
+                        .fill(themeSurfaceFill)
                         .background(
                             RoundedRectangle(cornerRadius: 22, style: .continuous)
                                 .fill(.ultraThinMaterial)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                                .stroke(themeStroke, lineWidth: 1)
                         )
-                        .shadow(color: Color.black.opacity(0.22), radius: 16, x: 0, y: 10)
+                        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 16, x: 0, y: 10)
                 )
 
                 selectedDatePanel
@@ -902,31 +902,31 @@ struct HomeView: View {
             Text(text)
                 .font(.system(size: 11, weight: .bold, design: .rounded))
         }
-        .foregroundStyle(.white.opacity(0.86))
+        .foregroundStyle(heroSecondaryText)
         .padding(.horizontal, 9)
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(Color.white.opacity(0.10))
-                .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 1))
+                .fill(heroControlFill)
+                .overlay(Capsule().stroke(heroStroke, lineWidth: 1))
         )
     }
 
-    private func heroMetric(label: String, value: String, accent: Color = .white) -> some View {
+    private func heroMetric(label: String, value: String, accent: Color? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(textMuted)
             Text(value)
                 .font(.system(size: 25, weight: .black, design: .rounded))
-                .foregroundStyle(accent)
+                .foregroundStyle(accent ?? heroPrimaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var heroDivider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.12))
+            .fill(heroStroke)
             .frame(width: 1, height: 44)
     }
 
@@ -1682,6 +1682,7 @@ private struct DashboardActivityItem: Identifiable {
 
 private struct PremiumMetricCard: View {
     let metric: DashboardMetric
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1708,19 +1709,19 @@ private struct PremiumMetricCard: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(metric.value)
                     .font(.system(size: 30, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(primaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
 
                 Text(metric.title)
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.76))
+                    .foregroundStyle(secondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
                 Text(metric.subtitle)
                     .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.44))
+                    .foregroundStyle(mutedText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
@@ -1729,7 +1730,7 @@ private struct PremiumMetricCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(0.065))
+                .fill(surfaceFill)
                 .background(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .fill(.ultraThinMaterial)
@@ -1738,16 +1739,22 @@ private struct PremiumMetricCard: View {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .stroke(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.16), metric.tint.opacity(0.20), Color.white.opacity(0.04)],
+                                colors: [strokeColor.opacity(1.0), metric.tint.opacity(0.20), strokeColor.opacity(0.35)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
                             lineWidth: 1
                         )
                 )
-                .shadow(color: Color.black.opacity(0.26), radius: 16, x: 0, y: 10)
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.26 : 0.10), radius: 16, x: 0, y: 10)
         )
     }
+
+    private var primaryText: Color { colorScheme == .dark ? .white : Color(red: 0.04, green: 0.06, blue: 0.10) }
+    private var secondaryText: Color { colorScheme == .dark ? Color.white.opacity(0.76) : Color(red: 0.22, green: 0.28, blue: 0.38) }
+    private var mutedText: Color { colorScheme == .dark ? Color.white.opacity(0.44) : Color(red: 0.48, green: 0.53, blue: 0.62) }
+    private var surfaceFill: Color { colorScheme == .dark ? Color.white.opacity(0.065) : Color.white.opacity(0.88) }
+    private var strokeColor: Color { colorScheme == .dark ? Color.white.opacity(0.16) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.24) }
 }
 
 private struct ScheduleTimelineCard: View {
@@ -1759,6 +1766,7 @@ private struct ScheduleTimelineCard: View {
     let icon: String
     let tint: Color
     let priority: String
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
@@ -1785,7 +1793,7 @@ private struct ScheduleTimelineCard: View {
 
                     Text(priority)
                         .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(secondaryText)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 3)
                         .background(Capsule().fill(tint.opacity(0.12)))
@@ -1793,13 +1801,13 @@ private struct ScheduleTimelineCard: View {
 
                 Text(title)
                     .font(.system(size: 17, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(primaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
                 Text(detail)
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.62))
+                    .foregroundStyle(secondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.76)
 
@@ -1808,7 +1816,7 @@ private struct ScheduleTimelineCard: View {
                     Label(venue, systemImage: "location.fill")
                 }
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.44))
+                .foregroundStyle(mutedText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.68)
             }
@@ -1817,27 +1825,34 @@ private struct ScheduleTimelineCard: View {
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .heavy))
-                .foregroundStyle(.white.opacity(0.34))
+                .foregroundStyle(mutedText)
         }
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(0.065))
+                .fill(surfaceFill)
                 .background(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(.ultraThinMaterial)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                        .stroke(strokeColor, lineWidth: 1)
                 )
-                .shadow(color: Color.black.opacity(0.24), radius: 16, x: 0, y: 10)
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.10), radius: 16, x: 0, y: 10)
         )
     }
+
+    private var primaryText: Color { colorScheme == .dark ? .white : Color(red: 0.04, green: 0.06, blue: 0.10) }
+    private var secondaryText: Color { colorScheme == .dark ? Color.white.opacity(0.62) : Color(red: 0.25, green: 0.31, blue: 0.41) }
+    private var mutedText: Color { colorScheme == .dark ? Color.white.opacity(0.44) : Color(red: 0.48, green: 0.53, blue: 0.62) }
+    private var surfaceFill: Color { colorScheme == .dark ? Color.white.opacity(0.065) : Color.white.opacity(0.86) }
+    private var strokeColor: Color { colorScheme == .dark ? Color.white.opacity(0.10) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.24) }
 }
 
 private struct ActivityFeedRow: View {
     let item: DashboardActivityItem
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 13) {
@@ -1853,12 +1868,12 @@ private struct ActivityFeedRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(primaryText)
                     .lineLimit(1)
 
                 Text(item.detail)
                     .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.52))
+                    .foregroundStyle(secondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
@@ -1873,26 +1888,33 @@ private struct ActivityFeedRow: View {
 
                 Text(item.timestamp)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.42))
+                    .foregroundStyle(mutedText)
                     .lineLimit(1)
             }
         }
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.055))
+                .fill(surfaceFill)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(strokeColor, lineWidth: 1)
                 )
         )
     }
+
+    private var primaryText: Color { colorScheme == .dark ? .white : Color(red: 0.04, green: 0.06, blue: 0.10) }
+    private var secondaryText: Color { colorScheme == .dark ? Color.white.opacity(0.52) : Color(red: 0.32, green: 0.38, blue: 0.48) }
+    private var mutedText: Color { colorScheme == .dark ? Color.white.opacity(0.42) : Color(red: 0.52, green: 0.56, blue: 0.64) }
+    private var surfaceFill: Color { colorScheme == .dark ? Color.white.opacity(0.055) : Color.white.opacity(0.78) }
+    private var strokeColor: Color { colorScheme == .dark ? Color.white.opacity(0.08) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.20) }
 }
 
 private struct QuickActionTile: View {
     let title: String
     let icon: String
     let tint: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1908,7 +1930,7 @@ private struct QuickActionTile: View {
 
             Text(title)
                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.90))
+                .foregroundStyle(primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
 
@@ -1918,13 +1940,16 @@ private struct QuickActionTile: View {
         .padding(.horizontal, 14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.065))
+                .fill(surfaceFill)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(tint.opacity(0.16), lineWidth: 1)
                 )
         )
     }
+
+    private var primaryText: Color { colorScheme == .dark ? Color.white.opacity(0.90) : Color(red: 0.04, green: 0.06, blue: 0.10) }
+    private var surfaceFill: Color { colorScheme == .dark ? Color.white.opacity(0.065) : Color.white.opacity(0.82) }
 }
 
 private struct CalendarInfoRow: View {
@@ -1932,6 +1957,7 @@ private struct CalendarInfoRow: View {
     let detail: String
     let icon: String
     let tint: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1948,13 +1974,13 @@ private struct CalendarInfoRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(primaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
                 Text(detail)
                     .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.54))
+                    .foregroundStyle(secondaryText)
                     .lineLimit(2)
             }
 
@@ -1962,18 +1988,24 @@ private struct CalendarInfoRow: View {
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(.white.opacity(0.32))
+                .foregroundStyle(mutedText)
         }
         .padding(13)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.055))
+                .fill(surfaceFill)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(strokeColor, lineWidth: 1)
                 )
         )
     }
+
+    private var primaryText: Color { colorScheme == .dark ? .white : Color(red: 0.04, green: 0.06, blue: 0.10) }
+    private var secondaryText: Color { colorScheme == .dark ? Color.white.opacity(0.54) : Color(red: 0.32, green: 0.38, blue: 0.48) }
+    private var mutedText: Color { colorScheme == .dark ? Color.white.opacity(0.32) : Color(red: 0.52, green: 0.56, blue: 0.64) }
+    private var surfaceFill: Color { colorScheme == .dark ? Color.white.opacity(0.055) : Color.white.opacity(0.78) }
+    private var strokeColor: Color { colorScheme == .dark ? Color.white.opacity(0.08) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.20) }
 }
 
 private struct TacticalFieldGraphic: Shape {

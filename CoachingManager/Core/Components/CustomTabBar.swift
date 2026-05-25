@@ -30,7 +30,7 @@ struct CustomTabBar: View {
                 Rectangle()
                     .fill(
                         LinearGradient(
-                            colors: [Color.white.opacity(0.16), Color.clear],
+                            colors: [topBorderColor, Color.clear],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -72,13 +72,13 @@ struct CustomTabBar: View {
                     Image(systemName: icon)
                         .font(.system(size: 18, weight: .bold))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isSelected ? brandAccent : Color.white.opacity(0.45))
+                        .foregroundStyle(isSelected ? brandAccent : inactiveColor)
                         .frame(width: 46, height: 32)
                 }
 
                 Text(title)
                     .font(.system(size: 10, weight: isSelected ? .bold : .semibold, design: .rounded))
-                    .foregroundStyle(isSelected ? brandAccent : Color.white.opacity(0.48))
+                    .foregroundStyle(isSelected ? brandAccent : inactiveColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
@@ -101,10 +101,18 @@ struct CustomTabBar: View {
     }
 
     private var backgroundColor: Color {
-        Color(red: 0.025, green: 0.034, blue: 0.055)
+        colorScheme == .dark ? Color(red: 0.025, green: 0.034, blue: 0.055) : Color.white
     }
 
     private var brandAccent: Color {
         Color(red: 0.31, green: 0.58, blue: 1.0)
+    }
+
+    private var inactiveColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.48) : Color(red: 0.42, green: 0.47, blue: 0.56)
+    }
+
+    private var topBorderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.16) : Color.black.opacity(0.08)
     }
 }

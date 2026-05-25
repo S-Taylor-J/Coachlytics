@@ -11,38 +11,38 @@ struct TeamStatsSheet: View {
     let games: [Game]
     let teamPlayers: [Player]
     let teamName: String
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    
+
     @State private var selectedTab = 0
-    
+
     // MARK: - Computed Properties
     private var wins: Int {
         games.filter { $0.myTeamScore > $0.opponentScore }.count
     }
-    
+
     private var losses: Int {
         games.filter { $0.myTeamScore < $0.opponentScore }.count
     }
-    
+
     private var draws: Int {
         games.filter { $0.myTeamScore == $0.opponentScore }.count
     }
-    
+
     private var winPercentage: Double {
         guard games.count > 0 else { return 0 }
         return Double(wins) / Double(games.count) * 100
     }
-    
+
     private var totalGoalsFor: Int {
         games.reduce(0) { $0 + $1.myTeamScore }
     }
-    
+
     private var totalGoalsAgainst: Int {
         games.reduce(0) { $0 + $1.opponentScore }
     }
-    
+
     private var goalDifference: Int {
         totalGoalsFor - totalGoalsAgainst
     }
@@ -54,7 +54,7 @@ struct TeamStatsSheet: View {
     private var goalsPerGameAgainst: Double {
         games.isEmpty ? 0 : Double(totalGoalsAgainst) / Double(games.count)
     }
-    
+
     private var totalCircleEntries: Int {
         games.flatMap { $0.events }.filter { $0.eventType == .circleEntry && $0.team == .ourTeam }.count
     }
@@ -62,16 +62,16 @@ struct TeamStatsSheet: View {
     private var totalCircleEntriesAgainst: Int {
         games.flatMap { $0.events }.filter { $0.eventType == .circleEntry && $0.team == .otherTeam }.count
     }
-    
+
     private var totalInfractions: Int {
         games.flatMap { $0.events }.filter { $0.eventType == .infraction && $0.team == .ourTeam }.count
     }
-    
+
     private var totalOpponentInfractions: Int {
         let allEvents = games.flatMap { $0.events }
         return allEvents.filter { $0.eventType == .infraction && $0.team == .otherTeam }.count
     }
-    
+
     private var allOurGoalEvents: [GameEvent] {
         let allEvents = games.flatMap { $0.events }
         return allEvents.filter { event in
@@ -79,19 +79,19 @@ struct TeamStatsSheet: View {
             return isGoal && event.team == .ourTeam
         }
     }
-    
+
     private var goalsFromOpenPlay: Int {
         allOurGoalEvents.filter { $0.goalType == .openPlay || $0.goalType == nil }.count
     }
-    
+
     private var goalsFromPenaltyCorner: Int {
         allOurGoalEvents.filter { $0.goalType == .penaltyCorner }.count
     }
-    
+
     private var goalsFromStroke: Int {
         allOurGoalEvents.filter { $0.goalType == .stroke }.count
     }
-    
+
     private var allTeamEvents: [GameEvent] {
         games.flatMap { $0.events }
     }
@@ -115,7 +115,7 @@ struct TeamStatsSheet: View {
             $0.team == .otherTeam && $0.goalType == .penaltyCorner && ($0.eventType == .goal || ($0.eventType == .circleEntry && $0.circleResult == .goal))
         }.count
     }
-    
+
     private func goalCount(for player: Player) -> Int {
         let playerEvents = allTeamEvents.filter { $0.playerId == player.id && $0.team == .ourTeam }
         let goals = playerEvents.filter { event in
@@ -123,12 +123,12 @@ struct TeamStatsSheet: View {
         }
         return goals.count
     }
-    
+
     private func circleEntryCount(for player: Player) -> Int {
         let playerEvents = allTeamEvents.filter { $0.playerId == player.id && $0.team == .ourTeam }
         return playerEvents.filter { $0.eventType == .circleEntry }.count
     }
-    
+
     private var topScorers: [(Player, Int)] {
         var results: [(Player, Int)] = []
         for player in teamPlayers {
@@ -139,7 +139,7 @@ struct TeamStatsSheet: View {
         }
         return results.sorted { $0.1 > $1.1 }
     }
-    
+
     private var topCircleEntries: [(Player, Int)] {
         var results: [(Player, Int)] = []
         for player in teamPlayers {
@@ -150,15 +150,15 @@ struct TeamStatsSheet: View {
         }
         return results.sorted { $0.1 > $1.1 }
     }
-    
+
     private var topScorersItems: [(Player, String, Int)] {
         Array(topScorers.prefix(5)).map { ($0.0, "\($0.1) goals", $0.1) }
     }
-    
+
     private var topCircleEntriesItems: [(Player, String, Int)] {
         Array(topCircleEntries.prefix(5)).map { ($0.0, "\($0.1) entries", $0.1) }
     }
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -195,31 +195,34 @@ struct TeamStatsSheet: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 13, weight: .black))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(primaryText)
                             .frame(width: 34, height: 34)
                             .background(
                                 Circle()
-                                    .fill(Color.white.opacity(0.10))
-                                    .overlay(Circle().stroke(Color.white.opacity(0.10), lineWidth: 1))
+                                    .fill(themeSurfaceFill)
+                                    .overlay(Circle().stroke(themeStroke, lineWidth: 1))
                             )
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
-    
+
     // MARK: - Team Header
     private var teamHeader: some View {
         ZStack(alignment: .topTrailing) {
             RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [
+                        colors: colorScheme == .dark ? [
                             Color(red: 0.055, green: 0.085, blue: 0.145),
                             Color(red: 0.034, green: 0.075, blue: 0.155),
                             Color(red: 0.014, green: 0.145, blue: 0.320)
+                        ] : [
+                            Color(red: 0.925, green: 0.960, blue: 1.000),
+                            Color(red: 0.830, green: 0.900, blue: 1.000),
+                            Color(red: 0.700, green: 0.840, blue: 1.000)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -229,14 +232,14 @@ struct TeamStatsSheet: View {
                     RoundedRectangle(cornerRadius: 26, style: .continuous)
                         .stroke(
                             LinearGradient(
-                                colors: [brandAccent.opacity(0.64), Color.white.opacity(0.10), positiveGreen.opacity(0.22)],
+                                colors: [brandAccent.opacity(0.64), themeStroke, positiveGreen.opacity(0.22)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
                             lineWidth: 1
                         )
                 )
-                .shadow(color: brandAccent.opacity(0.24), radius: 26, x: 0, y: 14)
+                .shadow(color: brandAccent.opacity(colorScheme == .dark ? 0.24 : 0.18), radius: 26, x: 0, y: 14)
 
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 16) {
@@ -254,7 +257,7 @@ struct TeamStatsSheet: View {
 
                         Text(teamInitials)
                             .font(.system(size: 22, weight: .black, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(heroPrimaryText)
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -279,7 +282,7 @@ struct TeamStatsSheet: View {
 
                 HStack(spacing: 10) {
                     recordChip(value: "\(wins)W", tint: positiveGreen)
-                    recordChip(value: "\(draws)D", tint: Color.white.opacity(0.48))
+                    recordChip(value: "\(draws)D", tint: drawTint)
                     recordChip(value: "\(losses)L", tint: negativeRed)
                     Spacer()
                     Text(String(format: "%.0f%% win", winPercentage))
@@ -293,7 +296,7 @@ struct TeamStatsSheet: View {
             .padding(20)
         }
     }
-    
+
     // MARK: - Tab Picker
     private var tabPicker: some View {
         HStack(spacing: 6) {
@@ -305,7 +308,7 @@ struct TeamStatsSheet: View {
                 } label: {
                     Text(tabTitle(for: index))
                         .font(.system(size: 13, weight: selectedTab == index ? .black : .bold, design: .rounded))
-                        .foregroundStyle(selectedTab == index ? .white : textMuted)
+                        .foregroundStyle(selectedTab == index ? selectedTabText : textMuted)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 11)
                         .background(
@@ -323,11 +326,11 @@ struct TeamStatsSheet: View {
         .padding(5)
         .background(
             Capsule()
-                .fill(Color.white.opacity(0.07))
-                .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 1))
+                .fill(themeSurfaceFill)
+                .overlay(Capsule().stroke(themeStroke, lineWidth: 1))
         )
     }
-    
+
     private func tabTitle(for index: Int) -> String {
         switch index {
         case 0: return "Overview"
@@ -336,7 +339,7 @@ struct TeamStatsSheet: View {
         default: return ""
         }
     }
-    
+
     // MARK: - Overview Section
     private var overviewSection: some View {
         VStack(spacing: 16) {
@@ -394,7 +397,7 @@ struct TeamStatsSheet: View {
             .background(cardSurface(accent: .blue))
         }
     }
-    
+
     // MARK: - Goals Section
     private var goalsSection: some View {
         VStack(spacing: 16) {
@@ -434,7 +437,7 @@ struct TeamStatsSheet: View {
             .background(cardSurface(accent: warningOrange))
         }
     }
-    
+
     // MARK: - Leaderboards Section
     private var leaderboardsSection: some View {
         VStack(spacing: 16) {
@@ -447,10 +450,14 @@ struct TeamStatsSheet: View {
     private var backgroundGradient: some View {
         ZStack {
             LinearGradient(
-                colors: [
+                colors: colorScheme == .dark ? [
                     Color(red: 0.015, green: 0.026, blue: 0.045),
                     Color(red: 0.034, green: 0.052, blue: 0.086),
                     Color(red: 0.015, green: 0.018, blue: 0.030)
+                ] : [
+                    Color(red: 0.965, green: 0.980, blue: 1.000),
+                    Color(red: 0.925, green: 0.950, blue: 0.990),
+                    Color(red: 0.985, green: 0.990, blue: 1.000)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -458,9 +465,9 @@ struct TeamStatsSheet: View {
 
             LinearGradient(
                 colors: [
-                    brandAccent.opacity(0.13),
+                    brandAccent.opacity(colorScheme == .dark ? 0.13 : 0.16),
                     Color.clear,
-                    positiveGreen.opacity(0.05)
+                    positiveGreen.opacity(colorScheme == .dark ? 0.05 : 0.10)
                 ],
                 startPoint: .topTrailing,
                 endPoint: .bottomLeading
@@ -492,7 +499,35 @@ struct TeamStatsSheet: View {
     }
 
     private var textMuted: Color {
-        Color.white.opacity(0.54)
+        colorScheme == .dark ? Color.white.opacity(0.54) : Color(red: 0.45, green: 0.50, blue: 0.60)
+    }
+
+    private var primaryText: Color {
+        colorScheme == .dark ? .white : Color(red: 0.035, green: 0.055, blue: 0.090)
+    }
+
+    private var heroPrimaryText: Color {
+        colorScheme == .dark ? .white : Color(red: 0.030, green: 0.055, blue: 0.105)
+    }
+
+    private var themeSurfaceFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.070) : Color.white.opacity(0.86)
+    }
+
+    private var themeSecondarySurfaceFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.055) : Color.white.opacity(0.76)
+    }
+
+    private var themeStroke: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.24)
+    }
+
+    private var selectedTabText: Color {
+        colorScheme == .dark ? .white : Color(red: 0.035, green: 0.055, blue: 0.090)
+    }
+
+    private var drawTint: Color {
+        colorScheme == .dark ? Color.white.opacity(0.48) : Color(red: 0.45, green: 0.50, blue: 0.60)
     }
 
     private var teamInitials: String {
@@ -510,7 +545,7 @@ struct TeamStatsSheet: View {
                 Spacer()
                 Text("\(wins)-\(draws)-\(losses)")
                     .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.82))
+                    .foregroundStyle(primaryText.opacity(0.82))
             }
 
             GeometryReader { geo in
@@ -520,7 +555,7 @@ struct TeamStatsSheet: View {
                         .frame(width: geo.size.width * CGFloat(wins) / max(CGFloat(games.count), 1), height: 10)
 
                     Rectangle()
-                        .fill(Color.white.opacity(0.34))
+                        .fill(drawTint)
                         .frame(width: geo.size.width * CGFloat(draws) / max(CGFloat(games.count), 1), height: 10)
 
                     Rectangle()
@@ -528,7 +563,7 @@ struct TeamStatsSheet: View {
                         .frame(width: geo.size.width * CGFloat(losses) / max(CGFloat(games.count), 1), height: 10)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white.opacity(0.08))
+                .background(themeStroke.opacity(0.55))
                 .clipShape(Capsule())
             }
             .frame(height: 10)
@@ -536,10 +571,10 @@ struct TeamStatsSheet: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.black.opacity(0.18))
+                .fill(colorScheme == .dark ? Color.black.opacity(0.18) : Color.white.opacity(0.70))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(themeStroke, lineWidth: 1)
                 )
         )
     }
@@ -548,7 +583,7 @@ struct TeamStatsSheet: View {
         HStack {
             Text(title)
                 .font(.system(size: 18, weight: .black, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(primaryText)
             Spacer()
         }
     }
@@ -556,7 +591,7 @@ struct TeamStatsSheet: View {
     private func recordChip(value: String, tint: Color) -> some View {
         Text(value)
             .font(.system(size: 12, weight: .black, design: .rounded))
-            .foregroundStyle(.white)
+            .foregroundStyle(colorScheme == .dark ? .white : Color(red: 0.035, green: 0.055, blue: 0.090))
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .background(
@@ -597,7 +632,7 @@ struct TeamStatsSheet: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(item.0.name)
                                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(primaryText)
                                 Text("#\(item.0.number)")
                                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                                     .foregroundStyle(textMuted)
@@ -607,15 +642,15 @@ struct TeamStatsSheet: View {
 
                             Text(item.1)
                                 .font(.system(size: 13, weight: .black, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.86))
+                                .foregroundStyle(primaryText.opacity(0.86))
                         }
                         .padding(12)
                         .background(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color.white.opacity(0.055))
+                                .fill(themeSecondarySurfaceFill)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                        .stroke(themeStroke, lineWidth: 1)
                                 )
                         )
                     }
@@ -631,13 +666,13 @@ struct TeamStatsSheet: View {
             .fill(.ultraThinMaterial)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.white.opacity(0.060))
+                    .fill(themeSurfaceFill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .stroke(accent.opacity(0.22), lineWidth: 1)
             )
-            .shadow(color: Color.black.opacity(0.24), radius: 16, x: 0, y: 10)
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.10), radius: 16, x: 0, y: 10)
     }
 }
 
@@ -647,6 +682,7 @@ private struct TeamStatTile: View {
     let subtitle: String
     let icon: String
     let tint: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
@@ -662,17 +698,17 @@ private struct TeamStatTile: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(value)
                     .font(.system(size: 27, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(primaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
 
                 Text(title)
                     .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.74))
+                    .foregroundStyle(secondaryText)
 
                 Text(subtitle)
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.44))
+                    .foregroundStyle(mutedText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -681,19 +717,25 @@ private struct TeamStatTile: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.060))
+                .fill(surfaceFill)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(tint.opacity(0.16), lineWidth: 1)
                 )
         )
     }
+
+    private var primaryText: Color { colorScheme == .dark ? .white : Color(red: 0.04, green: 0.06, blue: 0.10) }
+    private var secondaryText: Color { colorScheme == .dark ? Color.white.opacity(0.74) : Color(red: 0.22, green: 0.28, blue: 0.38) }
+    private var mutedText: Color { colorScheme == .dark ? Color.white.opacity(0.44) : Color(red: 0.48, green: 0.53, blue: 0.62) }
+    private var surfaceFill: Color { colorScheme == .dark ? Color.white.opacity(0.060) : Color.white.opacity(0.78) }
 }
 
 private struct CompactTeamStat: View {
     let title: String
     let value: String
     let tint: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 10) {
@@ -705,10 +747,10 @@ private struct CompactTeamStat: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(value)
                     .font(.system(size: 18, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(primaryText)
                 Text(title)
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.48))
+                    .foregroundStyle(mutedText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -718,11 +760,16 @@ private struct CompactTeamStat: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .fill(Color.white.opacity(0.052))
+                .fill(surfaceFill)
                 .overlay(
                     RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                        .stroke(strokeColor, lineWidth: 1)
                 )
         )
     }
+
+    private var primaryText: Color { colorScheme == .dark ? .white : Color(red: 0.04, green: 0.06, blue: 0.10) }
+    private var mutedText: Color { colorScheme == .dark ? Color.white.opacity(0.48) : Color(red: 0.48, green: 0.53, blue: 0.62) }
+    private var surfaceFill: Color { colorScheme == .dark ? Color.white.opacity(0.052) : Color.white.opacity(0.74) }
+    private var strokeColor: Color { colorScheme == .dark ? Color.white.opacity(0.07) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.20) }
 }

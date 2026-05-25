@@ -117,75 +117,76 @@ struct AddEditView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Team Header Section (when teams exist)
-                if !teams.isEmpty {
-                    teamHeaderSection
-                }
-                
-                // Filter Bar
-                playerFilterBar
-                
-                // Show onboarding when no teams exist
-                if teams.isEmpty {
-                    noTeamsOnboardingView
-                } else if filteredPlayers.isEmpty {
-                    emptyStateView
-                } else {
-                    List {
-                        ForEach(filteredPlayers) { player in
-                            PlayerRow(player: player) {
-                                playerToEdit = player
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedPlayerForStats = player
-                            }
-                            .listRowBackground(backgroundColor)
-                            .listRowSeparator(.visible)
-                            .listRowSeparatorTint(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.18))
-                            .contextMenu {
-                                Button {
+            ZStack {
+                backgroundGradient
+                    .ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    if !teams.isEmpty {
+                        teamHeaderSection
+                    }
+
+                    playerFilterBar
+
+                    if teams.isEmpty {
+                        noTeamsOnboardingView
+                    } else if filteredPlayers.isEmpty {
+                        emptyStateView
+                    } else {
+                        List {
+                            ForEach(filteredPlayers) { player in
+                                PlayerRow(player: player) {
                                     playerToEdit = player
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
                                 }
-                                
-                                if let team = selectedTeam,
-                                    team.players.contains(where: { $0.id == player.id }) {
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    selectedPlayerForStats = player
+                                }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .contextMenu {
                                     Button {
-                                        removePlayerFromTeam(player, team: team)
+                                        playerToEdit = player
                                     } label: {
-                                        Label("Remove from Team", systemImage: "person.fill.xmark")
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+
+                                    if let team = selectedTeam,
+                                       team.players.contains(where: { $0.id == player.id }) {
+                                        Button {
+                                            removePlayerFromTeam(player, team: team)
+                                        } label: {
+                                            Label("Remove from Team", systemImage: "person.fill.xmark")
+                                        }
+                                    }
+
+                                    Button {
+                                        playerForTeamAssignment = player
+                                    } label: {
+                                        Label("Add to Team", systemImage: "person.fill.badge.plus")
+                                    }
+
+                                    Button(role: .destructive) {
+                                        playerToDelete = player
+                                        showDeleteAlert = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
                                 }
-                                
-                                Button {
-                                    playerForTeamAssignment = player
-                                } label: {
-                                    Label("Add to Team", systemImage: "person.fill.badge.plus")
-                                }
-                                
-                                Button(role: .destructive) {
-                                    playerToDelete = player
-                                    showDeleteAlert = true
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                            }
+                            .onDelete { offsets in
+                                offsetsToDelete = offsets
+                                showDeleteAlert = true
                             }
                         }
-                        .onDelete { offsets in
-                            offsetsToDelete = offsets
-                            showDeleteAlert = true
-                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .contentMargins(.bottom, 50, for: .scrollContent)
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                    .contentMargins(.bottom, 50, for: .scrollContent)
                 }
             }
-            .background(backgroundColor)
             .navigationTitle("Players")
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 12) {
@@ -278,14 +279,7 @@ struct AddEditView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(backgroundColor)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.35), lineWidth: 1)
-                        )
-                )
+                .background(fieldSurface(cornerRadius: 14))
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -499,8 +493,19 @@ struct AddEditView: View {
             .background(Color.clear)
 
             Divider()
-                .background(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.4))
+                .background(strokeColor)
         }
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(surfaceFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(strokeColor, lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 16, x: 0, y: 10)
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
     
     // MARK: - No Teams Onboarding View
@@ -593,7 +598,7 @@ struct AddEditView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(backgroundColor)
+        .background(Color.clear)
     }
     
     private func featureCard(icon: String, title: String, description: String, color: Color) -> some View {
@@ -675,7 +680,7 @@ struct AddEditView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(backgroundColor)
+        .background(Color.clear)
     }
     
     private func PlayerRow(player: Player, onEdit: @escaping () -> Void) -> some View {
@@ -695,7 +700,7 @@ struct AddEditView: View {
                 // Player name
                 Text(player.name)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(primaryText)
                 
                 // Position & Skills chips row
                 if !player.positions.isEmpty || !player.skills.isEmpty {
@@ -801,8 +806,17 @@ struct AddEditView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
         .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(surfaceFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(strokeColor, lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 12, x: 0, y: 7)
+        )
         .contentShape(Rectangle())
     }
     
@@ -830,18 +844,67 @@ struct AddEditView: View {
         colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
 
+    private var backgroundGradient: some View {
+        ZStack {
+            LinearGradient(
+                colors: colorScheme == .dark ? [
+                    Color(red: 0.015, green: 0.026, blue: 0.045),
+                    Color(red: 0.034, green: 0.052, blue: 0.086),
+                    Color(red: 0.015, green: 0.018, blue: 0.030)
+                ] : [
+                    Color(red: 0.965, green: 0.980, blue: 1.000),
+                    Color(red: 0.925, green: 0.950, blue: 0.990),
+                    Color(red: 0.985, green: 0.990, blue: 1.000)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            LinearGradient(
+                colors: [
+                    Color.accentColor.opacity(colorScheme == .dark ? 0.14 : 0.16),
+                    Color.clear,
+                    Color.green.opacity(colorScheme == .dark ? 0.05 : 0.10)
+                ],
+                startPoint: .topTrailing,
+                endPoint: .bottomLeading
+            )
+        }
+    }
+
+    private var primaryText: Color {
+        colorScheme == .dark ? .white : Color(red: 0.035, green: 0.055, blue: 0.090)
+    }
+
+    private var surfaceFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.065) : Color.white.opacity(0.86)
+    }
+
+    private var strokeColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.10) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.24)
+    }
+
+    private func fieldSurface(cornerRadius: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(colorScheme == .dark ? Color.white.opacity(0.065) : Color.white.opacity(0.82))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(strokeColor, lineWidth: 1)
+            )
+    }
+
     private func cardSurface(accent: Color) -> some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
             .fill(.ultraThinMaterial)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(surfaceFill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(accent.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(accent.opacity(0.22), lineWidth: 1)
             )
-            .shadow(color: accent.opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 12, x: 0, y: 8)
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 14, x: 0, y: 8)
     }
 }
 
@@ -883,6 +946,7 @@ struct PlayerFilterChip: View {
     let icon: String?
     let isActive: Bool
     let style: PlayerFilterChipStyle
+    @Environment(\.colorScheme) private var colorScheme
     
     init(label: String, icon: String? = nil, isActive: Bool = false, style: PlayerFilterChipStyle = .secondary) {
         self.label = label
@@ -912,13 +976,66 @@ struct PlayerFilterChip: View {
         .padding(.vertical, 8)
         .background(
             Capsule()
-                .fill(style.backgroundColor)
+                .fill(chipFill)
         )
-        .foregroundColor(style.foregroundColor)
+        .foregroundColor(chipForeground)
         .overlay(
             Capsule()
-                .strokeBorder(Color(.systemGray4).opacity(style.backgroundColor == Color(.systemGray5) ? 0.5 : 0), lineWidth: 0.5)
+                .strokeBorder(chipStroke, lineWidth: 1)
         )
+        .shadow(color: chipShadow, radius: style.isAccent ? 8 : 0, x: 0, y: 4)
+    }
+
+    private var chipFill: Color {
+        switch style {
+        case .secondary:
+            return colorScheme == .dark ? Color.white.opacity(0.065) : Color.white.opacity(0.82)
+        case .active:
+            return .blue
+        case .colored(let color):
+            return color
+        }
+    }
+
+    private var chipForeground: Color {
+        switch style {
+        case .secondary:
+            return colorScheme == .dark ? .white : Color(red: 0.035, green: 0.055, blue: 0.090)
+        case .active, .colored:
+            return .white
+        }
+    }
+
+    private var chipStroke: Color {
+        switch style {
+        case .secondary:
+            return colorScheme == .dark ? Color.white.opacity(0.10) : Color(red: 0.55, green: 0.64, blue: 0.78).opacity(0.24)
+        case .active:
+            return Color.blue.opacity(0.35)
+        case .colored(let color):
+            return color.opacity(0.35)
+        }
+    }
+
+    private var chipShadow: Color {
+        switch style {
+        case .secondary:
+            return .clear
+        case .active:
+            return Color.blue.opacity(0.22)
+        case .colored(let color):
+            return color.opacity(0.22)
+        }
     }
 }
 
+private extension PlayerFilterChipStyle {
+    var isAccent: Bool {
+        switch self {
+        case .secondary:
+            return false
+        case .active, .colored:
+            return true
+        }
+    }
+}
