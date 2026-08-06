@@ -24,8 +24,15 @@ struct PlayerQuickCard: View {
             VStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(Color.accentColor)
+                        .fill(
+                            LinearGradient(
+                                colors: [AppTheme.brandAccent, AppTheme.brandDeepBlue],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .frame(width: 44, height: 44)
+                        .shadow(color: AppTheme.brandAccent.opacity(0.3), radius: 8, x: 0, y: 4)
 
                     Text("\(player.number)")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -35,25 +42,17 @@ struct PlayerQuickCard: View {
                 VStack(spacing: 2) {
                     Text(player.name.split(separator: " ").first.map(String.init) ?? player.name)
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundColor(.primary)
+                        .foregroundStyle(AppTheme.primaryText(colorScheme))
                         .lineLimit(1)
 
                     Text("\(stats.goals) goals")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(AppTheme.mutedText(colorScheme))
                 }
             }
             .frame(width: 80)
             .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.white.opacity(0.7))
-                    )
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.08), radius: 6, x: 0, y: 3)
-            )
+            .cardSurface(cornerRadius: 14)
         }
     }
 }

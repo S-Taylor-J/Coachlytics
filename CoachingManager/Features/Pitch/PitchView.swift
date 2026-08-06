@@ -26,13 +26,12 @@ struct PlayerTimeMinimalView: View {
                         playerRow(for: player, index: index)
                     }
                 }
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .cardSurface(cornerRadius: 16)
                 .padding(.horizontal, 20)
             }
             .padding(.bottom, 40)
         }
-        .background(Color(.systemGray6).opacity(0.5))
+        .appBackground()
         .navigationTitle("Play Time")
         .navigationBarTitleDisplayMode(.large)
     }
@@ -42,41 +41,37 @@ struct PlayerTimeMinimalView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(pitchPlayers.count)")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(.green)
+                    .foregroundColor(AppTheme.success)
                 Text("On Pitch")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundColor(.secondary)
             }
-            
+
             Divider()
                 .frame(height: 40)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(players.count - pitchPlayers.count)")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(.orange)
+                    .foregroundColor(AppTheme.warning)
                 Text("On Bench")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 4) {
                 Text("\(players.count)")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppTheme.brandAccent)
                 Text("Total")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundColor(.secondary)
             }
         }
         .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-        )
+        .cardSurface(cornerRadius: 16)
     }
     
     private var sortedPlayers: [Player] {
@@ -90,7 +85,7 @@ struct PlayerTimeMinimalView: View {
         return HStack(spacing: 12) {
             // Status indicator
             Circle()
-                .fill(isOnPitch ? Color.green : Color.orange.opacity(0.5))
+                .fill(isOnPitch ? AppTheme.success : AppTheme.warning.opacity(0.5))
                 .frame(width: 8, height: 8)
             
             // Player number
@@ -111,7 +106,7 @@ struct PlayerTimeMinimalView: View {
                 if isOnPitch {
                     Image(systemName: "clock.fill")
                         .font(.system(size: 10))
-                        .foregroundColor(.green)
+                        .foregroundColor(AppTheme.success)
                 }
                 Text(formatTime(time))
                     .font(.system(size: 14, weight: .medium, design: .monospaced))
@@ -122,8 +117,8 @@ struct PlayerTimeMinimalView: View {
         .padding(.vertical, 14)
         .background(
             index % 2 == 0
-                ? Color(.systemBackground)
-                : Color(.systemGray6).opacity(0.5)
+                ? AppTheme.surfaceFill(colorScheme)
+                : AppTheme.secondarySurfaceFill(colorScheme)
         )
     }
     
@@ -822,13 +817,7 @@ extension PitchView {
     
     // MARK: Background
     private var backgroundGradient: some View {
-        LinearGradient(
-            colors: colorScheme == .dark
-                ? [Color(.systemBackground), Color(.systemGray6)]
-                : [Color(.systemGray6).opacity(0.5), Color(.systemBackground)],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        AppBackgroundView()
     }
     
     // MARK: Header Stats Bar
@@ -839,27 +828,27 @@ extension PitchView {
                 icon: "sportscourt.fill",
                 value: "\(pitchPlayers.count)",
                 label: "On Pitch",
-                color: pitchPlayers.count >= minPlayersOnPitch ? .green : .orange
+                color: pitchPlayers.count >= minPlayersOnPitch ? AppTheme.success : AppTheme.warning
             )
-            
+
             // Available stat
             StatCard(
                 icon: "person.3.fill",
                 value: "\(filteredPlayers.filter { p in !pitchPlayers.contains { $0.player.id == p.id } }.count)",
                 label: "Available",
-                color: .blue
+                color: AppTheme.brandAccent
             )
-            
+
             // Required stat
             StatCard(
                 icon: "target",
                 value: "\(minPlayersOnPitch)",
                 label: "Required",
-                color: .purple
+                color: AppTheme.purpleAccent
             )
-            
+
             Spacer()
-            
+
             // Show current team name
             if let team = selectedTeam {
                 HStack(spacing: 6) {
@@ -871,15 +860,7 @@ extension PitchView {
                 .foregroundColor(.primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(Color(.systemBackground))
-                        .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(Color(.systemGray4), lineWidth: 0.5)
-                )
+                .cardSurface(cornerRadius: 100)
             }
         }
         .padding(.vertical, 8)
@@ -923,7 +904,7 @@ extension PitchView {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.secondary)
                     .padding(8)
-                    .background(Circle().fill(Color(.systemGray5)))
+                    .background(Circle().fill(AppTheme.secondarySurfaceFill(colorScheme)))
             }
             .buttonStyle(.plain)
 
@@ -937,22 +918,14 @@ extension PitchView {
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.blue))
+                    .background(Capsule().fill(AppTheme.brandAccent))
             }
 
             Spacer()
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 8, x: 0, y: 4)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(.systemGray5), lineWidth: 1)
-        )
+        .cardSurface(cornerRadius: 16)
     }
     
     private var collapsedBenchTab: some View {
@@ -983,14 +956,14 @@ extension PitchView {
                 if benchCount > 0 {
                     ZStack {
                         Circle()
-                            .fill(Color.blue)
+                            .fill(AppTheme.brandAccent)
                             .frame(width: 20, height: 20)
                         Text("\(benchCount)")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.white)
                     }
                 }
-                
+
                 Text("Bench")
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .foregroundColor(.secondary)
@@ -999,19 +972,11 @@ extension PitchView {
                     .frame(width: 20, height: 60)
             }
             .padding(.top, 4)
-            
+
             Spacer()
         }
         .frame(maxHeight: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 8, x: 0, y: 4)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(.systemGray5), lineWidth: 1)
-        )
+        .cardSurface(cornerRadius: 16)
     }
     
     private func expandedBenchPanel(game: Game, gameTimer: GameTimer, playerTimes: [UUID: TimeInterval]) -> some View {
@@ -1033,7 +998,7 @@ extension PitchView {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.secondary)
                         .padding(6)
-                        .background(Circle().fill(Color(.systemGray5)))
+                        .background(Circle().fill(AppTheme.secondarySurfaceFill(colorScheme)))
                 }
                 .buttonStyle(.plain)
             }
@@ -1057,26 +1022,26 @@ extension PitchView {
                     .padding(.vertical, isCompact ? 8 : 10)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.red)
+                            .fill(AppTheme.danger)
                     )
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, isCompact ? 6 : 10)
                 .padding(.bottom, isCompact ? 6 : 10)
             }
-            
+
             // Divider with gradient
             Rectangle()
                 .fill(
                     LinearGradient(
-                        colors: [.clear, Color(.systemGray4), .clear],
+                        colors: [.clear, AppTheme.strokeColor(colorScheme), .clear],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
                 )
                 .frame(height: 1)
                 .padding(.horizontal, 12)
-            
+
             // Players list
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: isCompact ? 8 : 12) {
@@ -1107,17 +1072,9 @@ extension PitchView {
                 .padding(.vertical, isCompact ? 8 : 12)
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: pitchPlayers.count)
             }
-            
+
         }
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 8, x: 0, y: 4)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(.systemGray5), lineWidth: 1)
-        )
+        .cardSurface(cornerRadius: 16)
     }
 
     private func expandedBenchPanelNoGame() -> some View {
@@ -1139,7 +1096,7 @@ extension PitchView {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.secondary)
                         .padding(6)
-                        .background(Circle().fill(Color(.systemGray5)))
+                        .background(Circle().fill(AppTheme.secondarySurfaceFill(colorScheme)))
                 }
                 .buttonStyle(.plain)
             }
@@ -1163,7 +1120,7 @@ extension PitchView {
                     .padding(.vertical, isCompact ? 8 : 10)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.red)
+                            .fill(AppTheme.danger)
                     )
                 }
                 .buttonStyle(.plain)
@@ -1175,7 +1132,7 @@ extension PitchView {
             Rectangle()
                 .fill(
                     LinearGradient(
-                        colors: [.clear, Color(.systemGray4), .clear],
+                        colors: [.clear, AppTheme.strokeColor(colorScheme), .clear],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
@@ -1215,15 +1172,7 @@ extension PitchView {
             }
 
         }
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 8, x: 0, y: 4)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(.systemGray5), lineWidth: 1)
-        )
+        .cardSurface(cornerRadius: 16)
     }
     
     // MARK: Empty Squad View
@@ -1448,11 +1397,7 @@ struct StatCard: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
-        )
+        .cardSurface(cornerRadius: 10, showShadow: false)
     }
 }
 
@@ -1460,7 +1405,8 @@ struct ModernNotificationBadge: View {
     let message: String
     let icon: String
     let style: NotificationStyle
-    
+    @Environment(\.colorScheme) private var colorScheme
+
     @State private var isExpanded = true
     @State private var collapseTask: Task<Void, Never>? = nil
     
@@ -1473,17 +1419,9 @@ struct ModernNotificationBadge: View {
         
         var color: Color {
             switch self {
-            case .warning: return .orange
-            case .error: return .red
-            case .info: return .blue
-            }
-        }
-        
-        var backgroundColor: Color {
-            switch self {
-            case .warning: return Color(.systemBackground)
-            case .error: return Color(.systemBackground)
-            case .info: return Color(.systemBackground)
+            case .warning: return AppTheme.warning
+            case .error: return AppTheme.danger
+            case .info: return AppTheme.brandAccent
             }
         }
     }
@@ -1529,18 +1467,14 @@ struct ModernNotificationBadge: View {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.secondary)
                     .padding(5)
-                    .background(Circle().fill(Color(.systemGray5)))
+                    .background(Circle().fill(AppTheme.secondarySurfaceFill(colorScheme)))
             }
         }
         .frame(width: 220)
         .padding(.leading, 16)
         .padding(.trailing, 10)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(style.backgroundColor)
-                .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
-        )
+        .cardSurface(cornerRadius: 12, strokeAccent: style.color)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(style.color, lineWidth: 2)
@@ -1563,14 +1497,14 @@ struct ModernNotificationBadge: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(Color(.systemBackground))
+                    .fill(AppTheme.surfaceFill(colorScheme))
                     .frame(width: 40, height: 40)
-                    .shadow(color: Color.black.opacity(0.15), radius: 6, x: 0, y: 3)
+                    .shadow(color: AppTheme.shadowColor(colorScheme), radius: 6, x: 0, y: 3)
                     .overlay(
                         Circle()
                             .stroke(style.color, lineWidth: 2)
                     )
-                
+
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(style.color)
@@ -1584,7 +1518,7 @@ struct ModernNotificationBadge: View {
             )
         )
     }
-    
+
     // MARK: - Collapse Timer
     private func scheduleCollapse(after seconds: Double) {
         collapseTask?.cancel()
@@ -1623,20 +1557,20 @@ struct SwapPlayerSheet: View {
                 // Swap arrow
                 HStack {
                     Rectangle()
-                        .fill(Color(.systemGray4))
+                        .fill(AppTheme.strokeColor(colorScheme))
                         .frame(height: 1)
-                    
+
                     Image(systemName: "arrow.up.arrow.down.circle.fill")
                         .font(.system(size: 28))
-                        .foregroundColor(.blue)
-                    
+                        .foregroundColor(AppTheme.brandAccent)
+
                     Rectangle()
-                        .fill(Color(.systemGray4))
+                        .fill(AppTheme.strokeColor(colorScheme))
                         .frame(height: 1)
                 }
                 .padding(.horizontal, 40)
                 .padding(.bottom, 12)
-                
+
                 // Available players list
                 if availablePlayers.isEmpty {
                     emptyStateView
@@ -1652,7 +1586,7 @@ struct SwapPlayerSheet: View {
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .appBackground()
             .navigationTitle("Substitute Player")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1677,27 +1611,27 @@ struct SwapPlayerSheet: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color.red.opacity(0.9), Color.red],
+                            colors: [AppTheme.danger.opacity(0.9), AppTheme.danger],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 50, height: 50)
-                
+
                 Text("\(currentPlayer.number)")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(currentPlayer.name)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.primary)
-                
+
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.system(size: 12))
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.danger)
                     Text("Coming off")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
@@ -1717,13 +1651,9 @@ struct SwapPlayerSheet: View {
             // }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 6, x: 0, y: 3)
-        )
+        .cardSurface(cornerRadius: 14)
     }
-    
+
     private func playerRow(for player: Player) -> some View {
         Button {
             onSwap(player)
@@ -1734,13 +1664,13 @@ struct SwapPlayerSheet: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color.green.opacity(0.9), Color.green],
+                                colors: [AppTheme.success.opacity(0.9), AppTheme.success],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 44, height: 44)
-                    
+
                     Text("\(player.number)")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
@@ -1778,17 +1708,10 @@ struct SwapPlayerSheet: View {
                 // Swap indicator
                 Image(systemName: "arrow.left.arrow.right.circle.fill")
                     .font(.system(size: 22))
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppTheme.brandAccent)
             }
             .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(.systemGray5), lineWidth: 1)
-            )
+            .cardSurface(cornerRadius: 12, showShadow: false)
         }
         .buttonStyle(.plain)
     }
@@ -1838,9 +1761,9 @@ struct PitchTimerOverlay: View {
         HStack(spacing: 8) {
             // Running indicator
             Circle()
-                .fill(gameTimer.isRunning ? Color.green : Color.orange)
+                .fill(gameTimer.isRunning ? AppTheme.success : AppTheme.warning)
                 .frame(width: 8, height: 8)
-                .shadow(color: gameTimer.isRunning ? .green.opacity(0.5) : .clear, radius: 4)
+                .shadow(color: gameTimer.isRunning ? AppTheme.success.opacity(0.5) : .clear, radius: 4)
             
             // Game time
             VStack(alignment: .leading, spacing: 0) {

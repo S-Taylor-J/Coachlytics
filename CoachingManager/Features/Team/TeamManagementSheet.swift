@@ -21,38 +21,6 @@ struct TeamManagementSheet: View {
     @State private var teamToEdit: Team?
     @State private var editedTeamName = ""
     
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-
-    private var backgroundGradient: some View {
-        ZStack {
-            LinearGradient(
-                colors: colorScheme == .dark ? [
-                    Color(red: 0.015, green: 0.026, blue: 0.045),
-                    Color(red: 0.034, green: 0.052, blue: 0.086),
-                    Color(red: 0.015, green: 0.018, blue: 0.030)
-                ] : [
-                    Color(red: 0.965, green: 0.980, blue: 1.000),
-                    Color(red: 0.925, green: 0.950, blue: 0.990),
-                    Color(red: 0.985, green: 0.990, blue: 1.000)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            LinearGradient(
-                colors: [
-                    Color.accentColor.opacity(colorScheme == .dark ? 0.14 : 0.16),
-                    Color.clear,
-                    Color.green.opacity(colorScheme == .dark ? 0.05 : 0.10)
-                ],
-                startPoint: .topTrailing,
-                endPoint: .bottomLeading
-            )
-        }
-    }
-
     private var primaryText: Color {
         colorScheme == .dark ? .white : Color(red: 0.035, green: 0.055, blue: 0.090)
     }
@@ -68,8 +36,7 @@ struct TeamManagementSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundGradient
-                    .ignoresSafeArea()
+                AppBackgroundView()
 
                 ScrollView {
                     VStack(spacing: 16) {
@@ -155,9 +122,9 @@ struct TeamManagementSheet: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(Color.accentColor)
+                        .fill(AppTheme.brandAccent)
                         .frame(width: 56, height: 56)
-                        .shadow(color: Color.accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
+                        .shadow(color: AppTheme.brandAccent.opacity(0.3), radius: 8, x: 0, y: 4)
                     
                     Image(systemName: "person.3.fill")
                         .font(.system(size: 22, weight: .semibold))
@@ -187,18 +154,18 @@ struct TeamManagementSheet: View {
                     Text("New Team")
                         .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(.accentColor)
+                .foregroundColor(AppTheme.brandAccent)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.accentColor.opacity(0.12))
+                        .fill(AppTheme.brandAccent.opacity(0.12))
                 )
             }
         }
         .padding(16)
-        .background(cardSurface(accent: .accentColor))
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
     
     // MARK: - Teams Section
@@ -247,7 +214,7 @@ struct TeamManagementSheet: View {
             // Team Badge
             ZStack {
                 Circle()
-                    .fill(selectedTeam?.id == team.id ? Color.accentColor : Color(.systemGray4))
+                    .fill(selectedTeam?.id == team.id ? AppTheme.brandAccent : Color.gray.opacity(0.4))
                     .frame(width: 44, height: 44)
                 
                 Image(systemName: "person.3.fill")
@@ -276,10 +243,9 @@ struct TeamManagementSheet: View {
                 } label: {
                     Image(systemName: "pencil")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.blue)
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(AppTheme.brandAccent)
                         .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color.accentColor.opacity(0.12)))
+                        .background(Circle().fill(AppTheme.brandAccent.opacity(0.12)))
                 }
                 .buttonStyle(.plain)
                 
@@ -290,9 +256,9 @@ struct TeamManagementSheet: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.danger)
                         .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color.red.opacity(0.12)))
+                        .background(Circle().fill(AppTheme.danger.opacity(0.12)))
                 }
                 .buttonStyle(.plain)
             }
@@ -300,7 +266,7 @@ struct TeamManagementSheet: View {
             if selectedTeam?.id == team.id {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 22))
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(AppTheme.brandAccent)
                     .transition(.scale.combined(with: .opacity))
             }
         }

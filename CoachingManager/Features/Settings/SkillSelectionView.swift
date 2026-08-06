@@ -20,15 +20,16 @@ struct SkillSelectionView: View {
                 ForEach(allSkills, id: \.self) { skill in
                     HStack {
                         Text(skill)
+                            .foregroundColor(AppTheme.primaryText(colorScheme))
                         if customOptionsManager.isCustomSkill(skill) {
                             Image(systemName: "star.circle.fill")
                                 .font(.caption)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(AppTheme.warning)
                         }
                         Spacer()
                         if selectedSkills.contains(skill) {
                             Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.brandAccent)
                         }
                     }
                     .contentShape(Rectangle())
@@ -44,23 +45,24 @@ struct SkillSelectionView: View {
                 HStack {
                     Text("Selected: \(selectedSkills.count)/\(allSkills.count)")
                         .font(.caption)
-                        .foregroundColor(.secondary)
-                    
+                        .foregroundColor(AppTheme.secondaryText(colorScheme))
+
                     Spacer()
-                    
+
                     if !selectedSkills.isEmpty {
                         Button("Clear All") {
                             selectedSkills.removeAll()
                         }
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.danger)
                     }
                 }
                 .padding(.vertical, 8)
             }
         }
         .scrollContentBackground(.hidden)
-        .background(backgroundColor)
+        .appBackground()
+        .tint(AppTheme.brandAccent)
         .navigationTitle("Select Skills")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -70,9 +72,5 @@ struct SkillSelectionView: View {
                 }
             }
         }
-    }
-
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
 }

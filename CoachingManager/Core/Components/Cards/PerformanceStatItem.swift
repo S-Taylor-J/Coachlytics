@@ -20,7 +20,7 @@ struct PerformanceStatItem: View {
                 .foregroundColor(color)
             
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

@@ -30,7 +30,7 @@ struct GoalTypeRow: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.10) : Color(.systemGray5))
+                        .fill(AppTheme.strokeColor(colorScheme))
                         .frame(height: 8)
                     
                     RoundedRectangle(cornerRadius: 4)
@@ -83,14 +83,7 @@ struct GoalGameRow: View {
                 .foregroundColor(colorScheme == .dark ? .white : .primary)
         }
         .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color(.systemGray6).opacity(0.5))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.08) : Color.clear, lineWidth: 1)
-                )
-        )
+        .cardSurface(cornerRadius: 10, showShadow: false)
     }
 }
 

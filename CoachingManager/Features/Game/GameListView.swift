@@ -41,9 +41,9 @@ enum GameResultFilter: String, CaseIterable {
     var color: Color {
         switch self {
         case .all: return .gray
-        case .wins: return .green
-        case .losses: return .red
-        case .draws: return .orange
+        case .wins: return AppTheme.success
+        case .losses: return AppTheme.danger
+        case .draws: return AppTheme.warning
         }
     }
 }
@@ -135,8 +135,7 @@ struct GameListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundColor
-                    .ignoresSafeArea()
+                AppBackgroundView()
 
                 VStack(spacing: 0) {
                     // Compact Filter Bar
@@ -227,7 +226,7 @@ struct GameListView: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16))
-                                .foregroundColor(Color(.systemGray3))
+                                .foregroundColor(AppTheme.mutedText(colorScheme))
                         }
                     }
                 }
@@ -344,7 +343,7 @@ struct GameListView: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 18))
-                                .foregroundColor(Color(.systemGray3))
+                                .foregroundColor(AppTheme.mutedText(colorScheme))
                         }
                         .buttonStyle(.plain)
                         .transition(.scale.combined(with: .opacity))
@@ -384,7 +383,7 @@ struct GameListView: View {
                     .foregroundColor(.primary)
                 
                 Circle()
-                    .fill(Color.green)
+                    .fill(AppTheme.success)
                     .frame(width: 8, height: 8)
                 
                 Spacer()
@@ -420,7 +419,7 @@ struct GameListView: View {
                     .padding(.vertical, 4)
                     .background(
                         Capsule()
-                            .fill(Color.orange.opacity(0.15))
+                            .fill(AppTheme.warning.opacity(0.15))
                     )
             }
             .padding(.horizontal, 4)
@@ -452,7 +451,7 @@ struct GameListView: View {
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(Color(.systemGray5))
+                                .fill(AppTheme.secondarySurfaceFill(colorScheme))
                         )
                 } else if !filteredCompletedGames.isEmpty {
                     Text("\(filteredCompletedGames.count)")
@@ -462,7 +461,7 @@ struct GameListView: View {
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(Color(.systemGray5))
+                                .fill(AppTheme.secondarySurfaceFill(colorScheme))
                         )
                 }
             }
@@ -524,7 +523,7 @@ struct GameListView: View {
         VStack(spacing: 20) {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .font(.system(size: 44))
-                .foregroundColor(Color(.systemGray3))
+                .foregroundColor(AppTheme.mutedText(colorScheme))
             
             VStack(spacing: 6) {
                 Text("No games found")
@@ -564,7 +563,7 @@ struct GameListView: View {
         VStack(spacing: 20) {
             Image(systemName: "sportscourt")
                 .font(.system(size: 44))
-                .foregroundColor(Color(.systemGray3))
+                .foregroundColor(AppTheme.mutedText(colorScheme))
             
             VStack(spacing: 6) {
                 Text("No games yet")
@@ -594,11 +593,11 @@ struct GameListView: View {
     }
 
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
+        AppTheme.surfaceFill(colorScheme)
     }
 
     private var brandAccent: Color {
-        Color(red: 0.42, green: 0.70, blue: 1.0)
+        AppTheme.brandAccent
     }
 
     private func cardSurface(accent: Color) -> some View {
@@ -834,7 +833,7 @@ struct GameHistoryRow: View {
                     .padding(.vertical, 4)
                     .background(
                         Capsule()
-                            .fill(Color(.systemGray5))
+                            .fill(AppTheme.secondarySurfaceFill(colorScheme))
                     )
                 
                 Text(game.resultString)
@@ -956,16 +955,7 @@ struct NewGameSheet: View {
                 }
                 .padding(20)
             }
-            .background(
-                LinearGradient(
-                    colors: colorScheme == .dark
-                        ? [Color(.systemBackground), Color(.systemGray6)]
-                        : [Color(.systemGray6).opacity(0.3), Color(.systemBackground)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            )
+            .background(AppBackgroundView())
             .navigationTitle("New Game")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1010,7 +1000,7 @@ struct NewGameSheet: View {
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.orange.opacity(0.1))
+                        .fill(AppTheme.warning.opacity(0.1))
                 )
             } else {
                 VStack(spacing: 8) {
@@ -1033,7 +1023,7 @@ struct NewGameSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1070,7 +1060,7 @@ struct NewGameSheet: View {
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.orange.opacity(0.1))
+                            .fill(AppTheme.warning.opacity(0.1))
                     )
                 } else {
                     VStack(spacing: 6) {
@@ -1087,7 +1077,7 @@ struct NewGameSheet: View {
                                 HStack(spacing: 12) {
                                     ZStack {
                                         Circle()
-                                            .fill(selectedPlayerIds.contains(player.id) ? Color.blue : Color(.systemGray5))
+                                            .fill(selectedPlayerIds.contains(player.id) ? AppTheme.brandAccent : AppTheme.secondarySurfaceFill(colorScheme))
                                             .frame(width: 22, height: 22)
                                         if selectedPlayerIds.contains(player.id) {
                                             Image(systemName: "checkmark")
@@ -1111,7 +1101,7 @@ struct NewGameSheet: View {
                                 .padding(.vertical, 10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(.systemGray6).opacity(0.6))
+                                        .fill(AppTheme.secondarySurfaceFill(colorScheme).opacity(0.6))
                                 )
                             }
                             .buttonStyle(.plain)
@@ -1127,7 +1117,7 @@ struct NewGameSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1148,13 +1138,13 @@ struct NewGameSheet: View {
                 .padding(14)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray6))
+                        .fill(AppTheme.secondarySurfaceFill(colorScheme))
                 )
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1181,13 +1171,13 @@ struct NewGameSheet: View {
                 .padding(14)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray6))
+                        .fill(AppTheme.secondarySurfaceFill(colorScheme))
                 )
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1238,7 +1228,7 @@ struct NewGameSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isScheduledGame)
@@ -1371,7 +1361,7 @@ struct NewGameSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1445,16 +1435,7 @@ struct EditGameSheet: View {
                 }
                 .padding(20)
             }
-            .background(
-                LinearGradient(
-                    colors: colorScheme == .dark
-                        ? [Color(.systemBackground), Color(.systemGray6)]
-                        : [Color(.systemGray6).opacity(0.3), Color(.systemBackground)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            )
+            .background(AppBackgroundView())
             .navigationTitle("Edit Game")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1501,7 +1482,7 @@ struct EditGameSheet: View {
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.orange.opacity(0.1))
+                        .fill(AppTheme.warning.opacity(0.1))
                 )
             } else {
                 VStack(spacing: 8) {
@@ -1525,7 +1506,7 @@ struct EditGameSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1571,7 +1552,7 @@ struct EditGameSheet: View {
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.orange.opacity(0.1))
+                            .fill(AppTheme.warning.opacity(0.1))
                     )
                 } else {
                     VStack(spacing: 6) {
@@ -1588,7 +1569,7 @@ struct EditGameSheet: View {
                                 HStack(spacing: 12) {
                                     ZStack {
                                         Circle()
-                                            .fill(selectedPlayerIds.contains(player.id) ? Color.blue : Color(.systemGray5))
+                                            .fill(selectedPlayerIds.contains(player.id) ? AppTheme.brandAccent : AppTheme.secondarySurfaceFill(colorScheme))
                                             .frame(width: 22, height: 22)
                                         if selectedPlayerIds.contains(player.id) {
                                             Image(systemName: "checkmark")
@@ -1612,7 +1593,7 @@ struct EditGameSheet: View {
                                 .padding(.vertical, 10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(.systemGray6).opacity(0.6))
+                                        .fill(AppTheme.secondarySurfaceFill(colorScheme).opacity(0.6))
                                 )
                             }
                             .buttonStyle(.plain)
@@ -1628,7 +1609,7 @@ struct EditGameSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1649,13 +1630,13 @@ struct EditGameSheet: View {
                 .padding(14)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray6))
+                        .fill(AppTheme.secondarySurfaceFill(colorScheme))
                 )
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1682,13 +1663,13 @@ struct EditGameSheet: View {
                 .padding(14)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray6))
+                        .fill(AppTheme.secondarySurfaceFill(colorScheme))
                 )
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1741,7 +1722,7 @@ struct EditGameSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isScheduledGame)
@@ -1821,7 +1802,7 @@ struct EditGameSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
+                .fill(AppTheme.surfaceFill(colorScheme))
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
         )
     }
@@ -1878,13 +1859,14 @@ struct TeamSelectionRow: View {
     let team: Team
     let isSelected: Bool
     let onTap: () -> Void
-    
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(isSelected ? Color.red : Color(.systemGray5))
+                        .fill(isSelected ? Color.red : AppTheme.secondarySurfaceFill(colorScheme))
                         .frame(width: 44, height: 44)
                     
                     Text(String(team.name.prefix(2)).uppercased())
@@ -1913,7 +1895,7 @@ struct TeamSelectionRow: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color.red.opacity(0.1) : Color(.systemGray6))
+                    .fill(isSelected ? Color.red.opacity(0.1) : AppTheme.secondarySurfaceFill(colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -1935,7 +1917,7 @@ enum FilterChipStyle {
         case .secondary:
             return Color.clear
         case .active:
-            return Color.blue
+            return AppTheme.brandAccent
         case .colored(let color):
             return color
         }

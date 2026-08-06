@@ -26,8 +26,7 @@ struct CreateTeamSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundGradient
-                    .ignoresSafeArea()
+                AppBackgroundView()
 
                 ScrollView {
                     VStack(spacing: 28) {
@@ -74,9 +73,9 @@ struct CreateTeamSheet: View {
         VStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Color.accentColor)
+                    .fill(AppTheme.brandAccent)
                     .frame(width: 92, height: 92)
-                    .shadow(color: Color.accentColor.opacity(0.35), radius: 10, x: 0, y: 6)
+                    .shadow(color: AppTheme.brandAccent.opacity(0.35), radius: 10, x: 0, y: 6)
                 
                 Image(systemName: "person.3.fill")
                     .font(.system(size: 36, weight: .semibold))
@@ -96,7 +95,7 @@ struct CreateTeamSheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 28)
-        .background(cardSurface(accent: .accentColor))
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
     
     // MARK: - Team Name Section
@@ -120,7 +119,7 @@ struct CreateTeamSheet: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .strokeBorder(
-                            teamName.isEmpty ? strokeColor : Color.accentColor,
+                            teamName.isEmpty ? strokeColor : AppTheme.brandAccent,
                             lineWidth: teamName.isEmpty ? 1 : 2
                         )
                 )
@@ -171,7 +170,7 @@ struct CreateTeamSheet: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemBackground))
+                    .fill(AppTheme.surfaceFill(colorScheme))
             )
         }
     }
@@ -188,7 +187,7 @@ struct CreateTeamSheet: View {
                     icon: "1.circle.fill",
                     title: "Create your team",
                     description: "Give your team a name",
-                    iconColor: .blue
+                    iconColor: AppTheme.brandAccent
                 )
                 
                 Divider()
@@ -198,7 +197,7 @@ struct CreateTeamSheet: View {
                     icon: "2.circle.fill",
                     title: "Add players",
                     description: "Add players with their numbers and positions",
-                    iconColor: .green
+                    iconColor: AppTheme.success
                 )
                 
                 Divider()
@@ -208,7 +207,7 @@ struct CreateTeamSheet: View {
                     icon: "3.circle.fill",
                     title: "Start coaching",
                     description: "Use the pitch view and track games",
-                    iconColor: .purple
+                    iconColor: AppTheme.purpleAccent
                 )
             }
             .background(
@@ -218,38 +217,6 @@ struct CreateTeamSheet: View {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(surfaceFill)
                     )
-            )
-        }
-    }
-
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-
-    private var backgroundGradient: some View {
-        ZStack {
-            LinearGradient(
-                colors: colorScheme == .dark ? [
-                    Color(red: 0.015, green: 0.026, blue: 0.045),
-                    Color(red: 0.034, green: 0.052, blue: 0.086),
-                    Color(red: 0.015, green: 0.018, blue: 0.030)
-                ] : [
-                    Color(red: 0.965, green: 0.980, blue: 1.000),
-                    Color(red: 0.925, green: 0.950, blue: 0.990),
-                    Color(red: 0.985, green: 0.990, blue: 1.000)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            LinearGradient(
-                colors: [
-                    Color.accentColor.opacity(colorScheme == .dark ? 0.14 : 0.16),
-                    Color.clear,
-                    Color.green.opacity(colorScheme == .dark ? 0.05 : 0.10)
-                ],
-                startPoint: .topTrailing,
-                endPoint: .bottomLeading
             )
         }
     }

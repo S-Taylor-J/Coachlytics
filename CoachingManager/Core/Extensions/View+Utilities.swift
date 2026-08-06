@@ -18,13 +18,9 @@ extension View {
         )
     }
     
-    /// Apply standard card background styling
+    /// Apply standard card background styling (matches the app-wide glass card look)
     func cardBackground(cornerRadius: CGFloat = 16) -> some View {
-        self
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color(.systemBackground))
-            )
+        self.cardSurface(cornerRadius: cornerRadius)
     }
     
     /// Conditionally apply a modifier

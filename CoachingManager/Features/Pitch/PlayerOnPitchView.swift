@@ -54,33 +54,33 @@ struct PlayerOnPitchView: View {
     // Color based on play percentage
     private var progressColor: Color {
         if quarterPlayPercentage >= 0.75 {
-            return .green
+            return AppTheme.success
         } else if quarterPlayPercentage >= 0.5 {
-            return .yellow
+            return AppTheme.goldAccent
         } else if quarterPlayPercentage >= 0.25 {
-            return .orange
+            return AppTheme.warning
         } else {
-            return .red
+            return AppTheme.danger
         }
     }
-    
+
     // Premium gradient for player
     private var playerGradient: LinearGradient {
         LinearGradient(
-            colors: isDragging 
-                ? (isOverBench 
-                    ? [Color.red.opacity(0.9), Color.red, Color.red.opacity(0.85)]
-                    : [Color.blue.opacity(0.95), Color.blue, Color.blue.opacity(0.9)])
-                : [Color.blue.opacity(0.9), Color.blue, Color.blue.opacity(0.85)],
+            colors: isDragging
+                ? (isOverBench
+                    ? [AppTheme.danger.opacity(0.9), AppTheme.danger, AppTheme.danger.opacity(0.85)]
+                    : [AppTheme.brandAccent.opacity(0.95), AppTheme.brandAccent, AppTheme.brandDeepBlue.opacity(0.9)])
+                : [AppTheme.brandAccent.opacity(0.9), AppTheme.brandAccent, AppTheme.brandDeepBlue.opacity(0.85)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
-    
+
     // Remove indicator gradient
     private var removeGradient: LinearGradient {
         LinearGradient(
-            colors: [Color.red.opacity(0.9), Color.red],
+            colors: [AppTheme.danger.opacity(0.9), AppTheme.danger],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -96,8 +96,8 @@ struct PlayerOnPitchView: View {
     var body: some View {
         VStack(spacing: isCompact ? 2 : 3) {
             ZStack {
-                let ambientGlowColor: Color = isOverBench ? Color.red.opacity(0.5) : Color.blue.opacity(0.4)
-                let shadowColor: Color = (isOverBench ? Color.red : Color.blue).opacity(shadowOpacity)
+                let ambientGlowColor: Color = isOverBench ? AppTheme.danger.opacity(0.5) : AppTheme.brandAccent.opacity(0.4)
+                let shadowColor: Color = (isOverBench ? AppTheme.danger : AppTheme.brandAccent).opacity(shadowOpacity)
                 let mainGradient: LinearGradient = playerGradient
                 
                 // Ambient glow effect
@@ -146,7 +146,7 @@ struct PlayerOnPitchView: View {
                                 
                                 Image(systemName: "arrow.triangle.2.circlepath")
                                     .font(.system(size: swapIconSize * 0.7, weight: .bold))
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(AppTheme.brandAccent)
                             }
                             .offset(x: 2, y: 2)
                             .scaleEffect(showSwapHint ? 1.15 : 1.0)
@@ -187,8 +187,8 @@ struct PlayerOnPitchView: View {
             .background(
                 Capsule()
                     .fill(
-                        isDragging 
-                            ? (isOverBench ? Color.red.opacity(0.9) : Color.black.opacity(0.85))
+                        isDragging
+                            ? (isOverBench ? AppTheme.danger.opacity(0.9) : Color.black.opacity(0.85))
                             : Color.black.opacity(0.7)
                     )
             )

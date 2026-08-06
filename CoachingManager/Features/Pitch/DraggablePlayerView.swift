@@ -42,25 +42,25 @@ struct DraggablePlayerView: View {
     private var playerGradient: LinearGradient {
         LinearGradient(
             colors: [
-                Color.blue.opacity(0.9),
-                Color.blue,
-                Color.blue.opacity(0.85)
+                AppTheme.brandAccent.opacity(0.95),
+                AppTheme.brandAccent,
+                AppTheme.brandDeepBlue.opacity(0.9)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
-    
+
     // Color based on play percentage
     private var progressColor: Color {
         if quarterPlayPercentage >= 0.75 {
-            return .green
+            return AppTheme.success
         } else if quarterPlayPercentage >= 0.5 {
-            return .yellow
+            return AppTheme.goldAccent
         } else if quarterPlayPercentage >= 0.25 {
-            return .orange
+            return AppTheme.warning
         } else {
-            return .red
+            return AppTheme.danger
         }
     }
     
@@ -70,11 +70,11 @@ struct DraggablePlayerView: View {
             ZStack {
                 // Outer glow when dragging
                 Circle()
-                    .fill(Color.blue.opacity(0.3))
+                    .fill(AppTheme.brandAccent.opacity(0.3))
                     .frame(width: glowSize, height: glowSize)
                     .blur(radius: isDragging ? 8 : 0)
                     .opacity(isDragging ? 1 : 0)
-                
+
                 // Main circle
                 Circle()
                     .fill(playerGradient)
@@ -88,7 +88,7 @@ struct DraggablePlayerView: View {
                             .font(.system(size: numberFontSize, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                     )
-                    .shadow(color: Color.blue.opacity(isDragging ? 0.5 : 0.2), radius: shadowRadius, x: 0, y: isDragging ? 8 : 2)
+                    .shadow(color: AppTheme.brandAccent.opacity(isDragging ? 0.5 : 0.2), radius: shadowRadius, x: 0, y: isDragging ? 8 : 2)
             }
             
             // Player name with premium styling
@@ -134,14 +134,11 @@ struct DraggablePlayerView: View {
         }
         .padding(.horizontal, isCompact ? 6 : 10)
         .padding(.vertical, isCompact ? 5 : 8)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(isPressed ? 0.15 : 0.08), radius: isPressed ? 2 : 4, x: 0, y: isPressed ? 1 : 2)
-        )
+        .cardSurface(cornerRadius: 12, showShadow: false)
+        .shadow(color: Color.black.opacity(isPressed ? 0.15 : 0.08), radius: isPressed ? 2 : 4, x: 0, y: isPressed ? 1 : 2)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.blue.opacity(isDragging ? 0.5 : 0), lineWidth: 2)
+                .stroke(AppTheme.brandAccent.opacity(isDragging ? 0.5 : 0), lineWidth: 2)
         )
         .scaleEffect(dragScale)
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: dragScale)
@@ -190,14 +187,14 @@ struct DragPreviewView: View {
             ZStack {
                 // Glow effect
                 Circle()
-                    .fill(Color.blue.opacity(0.4))
+                    .fill(AppTheme.brandAccent.opacity(0.4))
                     .frame(width: 56, height: 56)
                     .blur(radius: 10)
-                
+
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color.blue.opacity(0.95), Color.blue],
+                            colors: [AppTheme.brandAccent, AppTheme.brandDeepBlue],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -212,7 +209,7 @@ struct DragPreviewView: View {
                             .font(.system(size: 18, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                     )
-                    .shadow(color: Color.blue.opacity(0.6), radius: 12, x: 0, y: 8)
+                    .shadow(color: AppTheme.brandAccent.opacity(0.6), radius: 12, x: 0, y: 8)
             }
             
             Text(player.name.split(separator: " ").last ?? "")

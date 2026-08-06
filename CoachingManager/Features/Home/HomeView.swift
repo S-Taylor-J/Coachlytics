@@ -2120,12 +2120,12 @@ struct ScheduledGameDetailSheet: View {
 
                                 Text(daysUntil)
                                     .font(.system(size: 12, weight: .bold, design: .rounded))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(AppTheme.warning)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 4)
                                     .background(
                                         Capsule()
-                                            .fill(Color.orange.opacity(0.15))
+                                            .fill(AppTheme.warning.opacity(0.15))
                                     )
                             }
 
@@ -2153,18 +2153,14 @@ struct ScheduledGameDetailSheet: View {
                         }
                     }
                     .padding(20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-                    )
+                    .cardSurface(cornerRadius: 16)
 
                     // Game Details
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Image(systemName: "info.circle.fill")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.brandAccent)
                             Text("Game Details")
                                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                         }
@@ -2174,7 +2170,7 @@ struct ScheduledGameDetailSheet: View {
                             HStack {
                                 Image(systemName: "calendar")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(AppTheme.warning)
                                     .frame(width: 24)
                                 Text("Date")
                                     .font(.system(size: 14, weight: .medium))
@@ -2190,7 +2186,7 @@ struct ScheduledGameDetailSheet: View {
                             HStack {
                                 Image(systemName: "clock")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(AppTheme.warning)
                                     .frame(width: 24)
                                 Text("Time")
                                     .font(.system(size: 14, weight: .medium))
@@ -2207,7 +2203,7 @@ struct ScheduledGameDetailSheet: View {
                                 HStack {
                                     Image(systemName: "location.fill")
                                         .font(.system(size: 14))
-                                        .foregroundColor(.green)
+                                        .foregroundColor(AppTheme.success)
                                         .frame(width: 24)
                                     Text("Location")
                                         .font(.system(size: 14, weight: .medium))
@@ -2225,7 +2221,7 @@ struct ScheduledGameDetailSheet: View {
                             HStack {
                                 Image(systemName: "clock.badge.fill")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.purple)
+                                    .foregroundColor(AppTheme.purpleAccent)
                                     .frame(width: 24)
                                 Text("Format")
                                     .font(.system(size: 14, weight: .medium))
@@ -2239,11 +2235,7 @@ struct ScheduledGameDetailSheet: View {
                         }
                     }
                     .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 8, x: 0, y: 4)
-                    )
+                    .cardSurface(cornerRadius: 16)
 
                     // Actions
                     VStack(spacing: 12) {
@@ -2256,12 +2248,12 @@ struct ScheduledGameDetailSheet: View {
                                 Text("Edit Game Details")
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                             }
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.brandAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.blue.opacity(0.1))
+                                    .fill(AppTheme.brandAccent.opacity(0.1))
                             )
                         }
 
@@ -2281,7 +2273,7 @@ struct ScheduledGameDetailSheet: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(
                                         LinearGradient(
-                                            colors: [.green, .green.opacity(0.8)],
+                                            colors: [AppTheme.success, AppTheme.success.opacity(0.8)],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
@@ -2292,16 +2284,7 @@ struct ScheduledGameDetailSheet: View {
                 }
                 .padding(20)
             }
-            .background(
-                LinearGradient(
-                    colors: colorScheme == .dark
-                        ? [Color(.systemBackground), Color(.systemGray6)]
-                        : [Color(.systemGray6).opacity(0.3), Color(.systemBackground)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            )
+            .background(AppBackgroundView())
             .navigationTitle("Scheduled Game")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

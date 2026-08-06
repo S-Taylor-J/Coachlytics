@@ -105,7 +105,7 @@ struct CustomTabBar: View {
     }
 
     private var brandAccent: Color {
-        Color(red: 0.31, green: 0.58, blue: 1.0)
+        AppTheme.brandAccent
     }
 
     private var inactiveColor: Color {

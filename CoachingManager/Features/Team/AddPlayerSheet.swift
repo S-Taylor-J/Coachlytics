@@ -64,8 +64,7 @@ struct AddPlayerSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundGradient
-                    .ignoresSafeArea()
+                AppBackgroundView()
 
                 ScrollView {
                     VStack(spacing: 24) {
@@ -119,13 +118,13 @@ struct AddPlayerSheet: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color.accentColor, Color(red: 0.17, green: 0.35, blue: 1.0)],
+                            colors: [AppTheme.brandAccent, AppTheme.brandDeepBlue],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 64, height: 64)
-                    .shadow(color: Color.accentColor.opacity(0.28), radius: 16, x: 0, y: 10)
+                    .shadow(color: AppTheme.brandAccent.opacity(0.28), radius: 16, x: 0, y: 10)
 
                 Image(systemName: "person.crop.circle.badge.plus")
                     .font(.system(size: 25, weight: .bold))
@@ -136,7 +135,7 @@ struct AddPlayerSheet: View {
                 Text("Roster Builder")
                     .font(.system(size: 12, weight: .heavy, design: .rounded))
                     .tracking(1.1)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(AppTheme.brandAccent)
                 Text("Add Player")
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundStyle(primaryText)
@@ -148,7 +147,7 @@ struct AddPlayerSheet: View {
             Spacer()
         }
         .padding(18)
-        .background(cardSurface(accent: .accentColor))
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
 
     private var playerInfoSection: some View {
@@ -175,7 +174,7 @@ struct AddPlayerSheet: View {
                     
                     HStack {
                         Image(systemName: "person.text.rectangle")
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(AppTheme.brandAccent)
                             .frame(width: 24)
                         
                         TextField("Enter player's name", text: $playerName)
@@ -192,7 +191,7 @@ struct AddPlayerSheet: View {
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(focusedField == .name ? Color.accentColor : Color.clear, lineWidth: 2)
+                            .stroke(focusedField == .name ? AppTheme.brandAccent : Color.clear, lineWidth: 2)
                     )
                 }
                 
@@ -204,7 +203,7 @@ struct AddPlayerSheet: View {
                     
                     HStack {
                         Image(systemName: "number")
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(AppTheme.brandAccent)
                             .frame(width: 24)
                         
                         TextField("Enter jersey number", text: $playerNumber)
@@ -216,13 +215,13 @@ struct AddPlayerSheet: View {
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(focusedField == .number ? Color.accentColor : Color.clear, lineWidth: 2)
+                            .stroke(focusedField == .number ? AppTheme.brandAccent : Color.clear, lineWidth: 2)
                     )
                 }
             }
         }
         .padding()
-        .background(cardSurface(accent: .accentColor))
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
     
     // MARK: - Team Section
@@ -239,11 +238,11 @@ struct AddPlayerSheet: View {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color.accentColor.opacity(0.15))
+                            .fill(AppTheme.brandAccent.opacity(0.15))
                             .frame(width: 44, height: 44)
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(AppTheme.brandAccent)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -263,11 +262,11 @@ struct AddPlayerSheet: View {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color.orange.opacity(0.15))
+                            .fill(AppTheme.warning.opacity(0.15))
                             .frame(width: 44, height: 44)
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.title2)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(AppTheme.warning)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -298,11 +297,11 @@ struct AddPlayerSheet: View {
                             HStack(spacing: 12) {
                                 ZStack {
                                     Circle()
-                                        .fill(selectedTeamForPlayer?.id == team.id ? Color.accentColor.opacity(0.15) : Color.gray.opacity(0.1))
+                                        .fill(selectedTeamForPlayer?.id == team.id ? AppTheme.brandAccent.opacity(0.15) : Color.gray.opacity(0.1))
                                         .frame(width: 44, height: 44)
                                     Image(systemName: selectedTeamForPlayer?.id == team.id ? "checkmark.circle.fill" : "circle")
                                         .font(.title2)
-                                        .foregroundStyle(selectedTeamForPlayer?.id == team.id ? Color.accentColor : .gray.opacity(0.5))
+                                        .foregroundStyle(selectedTeamForPlayer?.id == team.id ? AppTheme.brandAccent : .gray.opacity(0.5))
                                 }
                                 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -321,7 +320,7 @@ struct AddPlayerSheet: View {
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(selectedTeamForPlayer?.id == team.id ? Color.accentColor : Color.clear, lineWidth: 2)
+                                    .stroke(selectedTeamForPlayer?.id == team.id ? AppTheme.brandAccent : Color.clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
@@ -362,7 +361,7 @@ struct AddPlayerSheet: View {
             }
         }
         .padding()
-        .background(cardSurface(accent: .accentColor))
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
     
     // MARK: - Position Section
@@ -376,7 +375,7 @@ struct AddPlayerSheet: View {
                 if !selectedPositions.isEmpty {
                     Text("\(selectedPositions.count) selected")
                         .font(.caption)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(AppTheme.brandAccent)
                 }
             }
             
@@ -405,7 +404,7 @@ struct AddPlayerSheet: View {
             }
         }
         .padding()
-        .background(cardSurface(accent: .accentColor))
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
     
     // MARK: - Skills Section
@@ -419,7 +418,7 @@ struct AddPlayerSheet: View {
                 if !selectedSkills.isEmpty {
                     Text("\(selectedSkills.count) selected")
                         .font(.caption)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(AppTheme.brandAccent)
                 }
             }
             
@@ -447,39 +446,7 @@ struct AddPlayerSheet: View {
             }
         }
         .padding()
-        .background(cardSurface(accent: .accentColor))
-    }
-
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-
-    private var backgroundGradient: some View {
-        ZStack {
-            LinearGradient(
-                colors: colorScheme == .dark ? [
-                    Color(red: 0.015, green: 0.026, blue: 0.045),
-                    Color(red: 0.034, green: 0.052, blue: 0.086),
-                    Color(red: 0.015, green: 0.018, blue: 0.030)
-                ] : [
-                    Color(red: 0.965, green: 0.980, blue: 1.000),
-                    Color(red: 0.925, green: 0.950, blue: 0.990),
-                    Color(red: 0.985, green: 0.990, blue: 1.000)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            LinearGradient(
-                colors: [
-                    Color.accentColor.opacity(colorScheme == .dark ? 0.14 : 0.16),
-                    Color.clear,
-                    Color.green.opacity(colorScheme == .dark ? 0.05 : 0.10)
-                ],
-                startPoint: .topTrailing,
-                endPoint: .bottomLeading
-            )
-        }
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
 
     private var primaryText: Color {
@@ -569,7 +536,7 @@ struct PositionChip: View {
                         .font(.body)
                     if isCustom {
                         Circle()
-                            .fill(Color.orange)
+                            .fill(AppTheme.warning)
                             .frame(width: 6, height: 6)
                             .offset(x: 2, y: -2)
                     }
@@ -580,12 +547,12 @@ struct PositionChip: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .padding(.horizontal, 12)
-            .background(isSelected ? Color.blue.opacity(0.15) : surfaceFill)
-            .foregroundStyle(isSelected ? .blue : primaryText)
+            .background(isSelected ? AppTheme.brandAccent.opacity(0.15) : surfaceFill)
+            .foregroundStyle(isSelected ? AppTheme.brandAccent : primaryText)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.blue : strokeColor, lineWidth: isSelected ? 2 : 1)
+                    .stroke(isSelected ? AppTheme.brandAccent : strokeColor, lineWidth: isSelected ? 2 : 1)
             )
         }
         .buttonStyle(.plain)
@@ -613,17 +580,17 @@ struct SkillTag: View {
                 if isCustom {
                     Image(systemName: "star.circle.fill")
                         .font(.caption2)
-                        .foregroundStyle(isSelected ? .white.opacity(0.8) : .orange)
+                        .foregroundStyle(isSelected ? .white.opacity(0.8) : AppTheme.warning)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(isSelected ? Color.blue : surfaceFill)
+            .background(isSelected ? AppTheme.brandAccent : surfaceFill)
             .foregroundStyle(isSelected ? .white : primaryText)
             .cornerRadius(20)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color.blue : strokeColor, lineWidth: 1)
+                    .stroke(isSelected ? AppTheme.brandAccent : strokeColor, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

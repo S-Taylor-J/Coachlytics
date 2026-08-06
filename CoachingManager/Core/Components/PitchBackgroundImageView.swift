@@ -22,7 +22,7 @@ struct PitchBackgroundImageView: View {
             }
 
             if isDropTargeted {
-                Color.blue.opacity(0.1)
+                AppTheme.brandAccent.opacity(0.1)
                     .transition(.opacity)
             }
         }

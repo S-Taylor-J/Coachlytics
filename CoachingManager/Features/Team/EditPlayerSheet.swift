@@ -41,8 +41,7 @@ struct EditPlayerSheet: View, Identifiable {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundGradient
-                    .ignoresSafeArea()
+                AppBackgroundView()
 
                 ScrollView {
                     VStack(spacing: 16) {
@@ -83,13 +82,13 @@ struct EditPlayerSheet: View, Identifiable {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color.accentColor, Color(red: 0.17, green: 0.35, blue: 1.0)],
+                            colors: [AppTheme.brandAccent, AppTheme.brandDeepBlue],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 64, height: 64)
-                    .shadow(color: Color.accentColor.opacity(0.28), radius: 16, x: 0, y: 10)
+                    .shadow(color: AppTheme.brandAccent.opacity(0.28), radius: 16, x: 0, y: 10)
 
                 Text("#\(player.number)")
                     .font(.system(size: 17, weight: .black, design: .rounded))
@@ -100,7 +99,7 @@ struct EditPlayerSheet: View, Identifiable {
                 Text("Player Profile")
                     .font(.system(size: 12, weight: .heavy, design: .rounded))
                     .tracking(1.1)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(AppTheme.brandAccent)
                 Text(player.name)
                     .font(.system(size: 27, weight: .black, design: .rounded))
                     .foregroundStyle(primaryText)
@@ -113,12 +112,12 @@ struct EditPlayerSheet: View, Identifiable {
             Spacer()
         }
         .padding(18)
-        .background(cardSurface(accent: .accentColor))
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
 
     private var playerFieldsCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("Player Info", icon: "person.text.rectangle.fill", tint: .accentColor)
+            sectionHeader("Player Info", icon: "person.text.rectangle.fill", tint: AppTheme.brandAccent)
 
             VStack(spacing: 12) {
                 editField(icon: "person.fill", placeholder: "Player Name", text: $playerName)
@@ -127,18 +126,18 @@ struct EditPlayerSheet: View, Identifiable {
             }
         }
         .padding(16)
-        .background(cardSurface(accent: .accentColor))
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
 
     private var positionsCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                sectionHeader("Positions", icon: "sportscourt.fill", tint: .blue)
+                sectionHeader("Positions", icon: "sportscourt.fill", tint: AppTheme.brandAccent)
                 Spacer()
                 if !selectedPositions.isEmpty {
                     Text("\(selectedPositions.count) selected")
                         .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(AppTheme.brandAccent)
                 }
             }
 
@@ -162,18 +161,18 @@ struct EditPlayerSheet: View, Identifiable {
             }
         }
         .padding(16)
-        .background(cardSurface(accent: .blue))
+        .background(cardSurface(accent: AppTheme.brandAccent))
     }
 
     private var skillsCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                sectionHeader("Skills", icon: "star.fill", tint: .orange)
+                sectionHeader("Skills", icon: "star.fill", tint: AppTheme.warning)
                 Spacer()
                 if !selectedSkills.isEmpty {
                     Text("\(selectedSkills.count) selected")
                         .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(AppTheme.warning)
                 }
             }
 
@@ -196,18 +195,18 @@ struct EditPlayerSheet: View, Identifiable {
             }
         }
         .padding(16)
-        .background(cardSurface(accent: .orange))
+        .background(cardSurface(accent: AppTheme.warning))
     }
 
     private var teamMembershipCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("Teams", icon: "person.3.fill", tint: .purple)
+            sectionHeader("Teams", icon: "person.3.fill", tint: AppTheme.purpleAccent)
 
             if teams.isEmpty {
                 HStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(AppTheme.warning)
                     Text("No teams created yet")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(textMuted)
@@ -224,7 +223,7 @@ struct EditPlayerSheet: View, Identifiable {
             }
         }
         .padding(16)
-        .background(cardSurface(accent: .purple))
+        .background(cardSurface(accent: AppTheme.purpleAccent))
     }
 
     private func teamMembershipRow(_ team: Team) -> some View {
@@ -236,12 +235,12 @@ struct EditPlayerSheet: View, Identifiable {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(isSelected ? Color.purple.opacity(0.16) : Color.secondary.opacity(0.10))
+                        .fill(isSelected ? AppTheme.purpleAccent.opacity(0.16) : Color.secondary.opacity(0.10))
                         .frame(width: 44, height: 44)
 
                     Image(systemName: "person.3.fill")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(isSelected ? .purple : .secondary)
+                        .foregroundStyle(isSelected ? AppTheme.purpleAccent : .secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -257,13 +256,13 @@ struct EditPlayerSheet: View, Identifiable {
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(isSelected ? .green : Color.secondary.opacity(0.6))
+                    .foregroundStyle(isSelected ? AppTheme.success : Color.secondary.opacity(0.6))
             }
             .padding(14)
             .background(fieldSurface)
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(isSelected ? Color.green.opacity(0.45) : Color.clear, lineWidth: 1)
+                    .stroke(isSelected ? AppTheme.success.opacity(0.45) : Color.clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -285,7 +284,7 @@ struct EditPlayerSheet: View, Identifiable {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(AppTheme.brandAccent)
                 .frame(width: 20)
 
             TextField(placeholder, text: text)
@@ -294,26 +293,6 @@ struct EditPlayerSheet: View, Identifiable {
         }
         .padding(15)
         .background(fieldSurface)
-    }
-
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-
-    private var backgroundGradient: some View {
-        LinearGradient(
-            colors: colorScheme == .dark ? [
-                Color(red: 0.015, green: 0.026, blue: 0.045),
-                Color(red: 0.034, green: 0.052, blue: 0.086),
-                Color(red: 0.015, green: 0.018, blue: 0.030)
-            ] : [
-                Color(red: 0.965, green: 0.980, blue: 1.000),
-                Color(red: 0.925, green: 0.950, blue: 0.990),
-                Color(red: 0.985, green: 0.990, blue: 1.000)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
     }
 
     private var primaryText: Color {
