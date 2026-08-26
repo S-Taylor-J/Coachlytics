@@ -41,13 +41,6 @@ struct RecentGameRow: View {
                 .foregroundColor(.primary)
         }
         .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
-                )
-        )
+        .cardSurface(cornerRadius: 10, showShadow: false)
     }
 }

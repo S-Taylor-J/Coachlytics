@@ -14,8 +14,9 @@ struct AddCalendarNoteSheet: View {
     let onSave: (String) -> Void
     
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var noteText: String = ""
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -25,46 +26,41 @@ struct AddCalendarNoteSheet: View {
                         HStack(spacing: 8) {
                             Image(systemName: "calendar")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.blue)
-                            
+                                .foregroundColor(AppTheme.brandAccent)
+
                             Text(date.dayOfWeek)
                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                            
+                                .foregroundStyle(AppTheme.primaryText(colorScheme))
+
                             Spacer()
                         }
-                        
+
                         Text(date.fullDate)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundStyle(AppTheme.secondaryText(colorScheme))
                     }
                     .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.blue.opacity(0.1))
-                    )
-                    
+                    .cardSurface(cornerRadius: 12, strokeAccent: AppTheme.brandAccent)
+
                     // Note input
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Note")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(AppTheme.secondaryText(colorScheme))
+
                         TextField("Enter your note...", text: $noteText, axis: .vertical)
                             .font(.system(size: 15))
                             .lineLimit(5...10)
                             .padding(12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.systemGray6))
-                            )
+                            .cardSurface(cornerRadius: 12, showShadow: false)
                     }
-                    
+
                     // Quick suggestions
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Quick Add")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(AppTheme.secondaryText(colorScheme))
+
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(["Training 6pm", "Game Day", "Team Meeting", "Practice Match", "Rest Day"], id: \.self) { suggestion in
@@ -73,19 +69,19 @@ struct AddCalendarNoteSheet: View {
                                     } label: {
                                         Text(suggestion)
                                             .font(.system(size: 12, weight: .medium, design: .rounded))
-                                            .foregroundColor(.blue)
+                                            .foregroundColor(AppTheme.brandAccent)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 8)
                                             .background(
                                                 Capsule()
-                                                    .fill(Color.blue.opacity(0.1))
+                                                    .fill(AppTheme.brandAccent.opacity(0.12))
                                             )
                                     }
                                 }
                             }
                         }
                     }
-                    
+
                     // Delete button - only show if there's an existing note
                     if !existingNote.isEmpty {
                         Button(role: .destructive) {
@@ -103,13 +99,14 @@ struct AddCalendarNoteSheet: View {
                             .padding(.vertical, 16)
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color.red)
+                                    .fill(AppTheme.danger)
                             )
                         }
                     }
                 }
                 .padding(20)
             }
+            .appBackground()
             .navigationTitle("Add Note")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

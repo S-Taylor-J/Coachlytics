@@ -20,7 +20,7 @@ struct StatBox: View {
                 .foregroundColor(color)
             
             Text(title)
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 11, weight: .medium, design: .rounded))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

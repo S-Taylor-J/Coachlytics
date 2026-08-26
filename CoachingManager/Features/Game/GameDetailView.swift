@@ -38,9 +38,10 @@ struct GameDetailView: View {
     @State private var selectedCircleResult: CircleResult = .nothing
     @State private var selectedGoalType: GoalType = .openPlay
     
-    // Game settings for form behavior
-    @State private var gameSettings = GameSettings()
-    
+    // Game settings for form behavior — observed so Settings edits apply immediately
+    @ObservedObject private var settingsStore = AppSettingsStore.shared
+    private var gameSettings: GameSettings { settingsStore.gameSettings }
+
     // Event highlighting and repositioning state
     @State private var highlightedEventId: UUID? = nil
     
@@ -151,8 +152,7 @@ struct GameDetailView: View {
     
     var body: some View {
         ZStack {
-            backgroundColor
-                .ignoresSafeArea()
+            AppBackgroundView()
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
@@ -274,13 +274,6 @@ struct GameDetailView: View {
                 activeGameId = game.id.uuidString
                 PlayerTimeService.shared.ensureActiveStintsFromDefaults(gameId: game.id)
             }
-            // Load game settings
-            if let settingsString = UserDefaults.standard.string(forKey: "gameSettingsData"),
-               let data = settingsString.data(using: .utf8),
-               let settings = try? JSONDecoder().decode(GameSettings.self, from: data) {
-                gameSettings = settings
-            }
-            
             // Set up save callback for timer
             gameTimer.onSave { [weak modelContext] timer in
                 guard let context = modelContext else { return }
@@ -295,15 +288,6 @@ struct GameDetailView: View {
         .onDisappear {
             saveGameState()
         }
-    }
-    
-    // MARK: - Background
-    private var backgroundGradient: some View {
-        backgroundColor
-    }
-
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
     }
     
     // MARK: - Game Info Header
@@ -368,17 +352,17 @@ struct GameDetailView: View {
                 if !game.isCompleted {
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(Color.green)
+                            .fill(AppTheme.success)
                             .frame(width: 6, height: 6)
                         Text("Q\(gameTimer.currentQuarter) Live")
                             .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundColor(.green)
+                            .foregroundColor(AppTheme.success)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(
                         Capsule()
-                            .fill(Color.green.opacity(0.12))
+                            .fill(AppTheme.success.opacity(0.12))
                     )
                 }
             }
@@ -403,7 +387,7 @@ struct GameDetailView: View {
                     
                     // Visual separator
                     Rectangle()
-                        .fill(Color(.systemGray4))
+                        .fill(AppTheme.strokeColor(colorScheme))
                         .frame(width: 1, height: 36)
                         .padding(.horizontal, 4)
                     
@@ -501,10 +485,10 @@ struct GameDetailView: View {
                     } label: {
                         Text("Done")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.brandAccent)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 5)
-                            .background(Capsule().fill(Color.blue.opacity(0.12)))
+                            .background(Capsule().fill(AppTheme.brandAccent.opacity(0.12)))
                     }
                 } else {
                     Text("\(filteredEvents.count) events")
@@ -738,7 +722,7 @@ struct GameDetailView: View {
                     VStack(spacing: 12) {
                         ZStack {
                             Circle()
-                                .fill(Color(.systemGray6))
+                                .fill(AppTheme.secondarySurfaceFill(colorScheme))
                                 .frame(width: 56, height: 56)
                             Image(systemName: "plus.circle.dashed")
                                 .font(.system(size: 28, weight: .light))
@@ -996,12 +980,12 @@ struct GameClockCard2: View {
                     Text("Game Completed")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                 }
-                .foregroundColor(.green)
+                .foregroundColor(AppTheme.success)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(
                     Capsule()
-                        .fill(Color.green.opacity(0.15))
+                        .fill(AppTheme.success.opacity(0.15))
                 )
             } else {
                 // Time display row
@@ -1025,7 +1009,7 @@ struct GameClockCard2: View {
                         HStack(spacing: 4) {
                             Text("Q\(gameTimer.currentQuarter)")
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.brandAccent)
                             Text("/ \(gameTimer.quarters)")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.secondary)
@@ -1041,7 +1025,7 @@ struct GameClockCard2: View {
                             .foregroundColor(.secondary)
                         Text(gameTimer.formattedQuarterTime)
                             .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.brandAccent)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
@@ -1050,7 +1034,7 @@ struct GameClockCard2: View {
                             .foregroundColor(.secondary)
                         Text(gameTimer.timeRemainingInQuarter)
                             .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.orange)
+                            .foregroundColor(AppTheme.warning)
                     }
                 }
                 .padding(.horizontal, 12)
@@ -1235,7 +1219,7 @@ struct ScoreCard2: View {
                     
                     Text("\(myTeamScore)")
                         .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.danger)
                         .contentTransition(.numericText())
                     
                     if isCompleted && myTeamScore > opponentScore {
@@ -1245,12 +1229,12 @@ struct ScoreCard2: View {
                             Text("WINNER")
                                 .font(.system(size: 9, weight: .bold, design: .rounded))
                         }
-                        .foregroundColor(.yellow)
+                        .foregroundColor(AppTheme.goldAccent)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(
                             Capsule()
-                                .fill(Color.yellow.opacity(0.15))
+                                .fill(AppTheme.goldAccent.opacity(0.15))
                         )
                     }
                 }
@@ -1306,7 +1290,7 @@ struct ScoreCard2: View {
                     
                     Text("\(opponentScore)")
                         .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.brandAccent)
                         .contentTransition(.numericText())
                     
                     if isCompleted && opponentScore > myTeamScore {
@@ -1316,12 +1300,12 @@ struct ScoreCard2: View {
                             Text("WINNER")
                                 .font(.system(size: 9, weight: .bold, design: .rounded))
                         }
-                        .foregroundColor(.yellow)
+                        .foregroundColor(AppTheme.goldAccent)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(
                             Capsule()
-                                .fill(Color.yellow.opacity(0.15))
+                                .fill(AppTheme.goldAccent.opacity(0.15))
                         )
                     }
                 }
@@ -1426,7 +1410,7 @@ struct InfractionBreakdownCard: View {
                 ForEach(topInfractions, id: \.key) { infraction, count in
                     HStack(spacing: 8) {
                         Circle()
-                            .fill(Color.orange)
+                            .fill(AppTheme.warning)
                             .frame(width: 6, height: 6)
                         
                         Text(infraction.rawValue)
@@ -1436,16 +1420,16 @@ struct InfractionBreakdownCard: View {
                         
                         Text("\(count)")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundColor(.orange)
+                            .foregroundColor(AppTheme.warning)
                         
                         GeometryReader { geo in
                             RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.orange.opacity(0.3))
+                                .fill(AppTheme.warning.opacity(0.3))
                                 .frame(width: geo.size.width)
                                 .overlay(
                                     HStack {
                                         RoundedRectangle(cornerRadius: 2)
-                                            .fill(Color.orange)
+                                            .fill(AppTheme.warning)
                                             .frame(width: geo.size.width * CGFloat(count) / CGFloat(infractionEvents.count))
                                         Spacer(minLength: 0)
                                     }
@@ -1486,7 +1470,7 @@ struct CircleEntryAnalysisCard: View {
                     if let count = outcomes[result] {
                         HStack(spacing: 8) {
                             Circle()
-                                .fill(Color.green)
+                                .fill(AppTheme.success)
                                 .frame(width: 6, height: 6)
                             
                             Text(result.rawValue)
@@ -1496,16 +1480,16 @@ struct CircleEntryAnalysisCard: View {
                             
                             Text("\(count)")
                                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(.green)
+                                .foregroundColor(AppTheme.success)
                             
                             GeometryReader { geo in
                                 RoundedRectangle(cornerRadius: 2)
-                                    .fill(Color.green.opacity(0.3))
+                                    .fill(AppTheme.success.opacity(0.3))
                                     .frame(width: geo.size.width)
                                     .overlay(
                                         HStack {
                                             RoundedRectangle(cornerRadius: 2)
-                                                .fill(Color.green)
+                                                .fill(AppTheme.success)
                                                 .frame(width: geo.size.width * CGFloat(count) / CGFloat(circleEvents.count))
                                             Spacer(minLength: 0)
                                         }
@@ -1523,20 +1507,15 @@ struct CircleEntryAnalysisCard: View {
 // MARK: - Event Marker View
 struct EventMarkerView: View {
     let event: GameEvent
-    let circleResultSettings: CircleResultSettings
-    let isHighlighted: Bool
-    let isFaded: Bool
-    
+    var isHighlighted: Bool = false
+    var isFaded: Bool = false
+
     @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
     @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
-    
-    init(event: GameEvent, circleResultSettings: CircleResultSettings = CircleResultSettings.loadFromDefaults(), isHighlighted: Bool = false, isFaded: Bool = false) {
-        self.event = event
-        self.circleResultSettings = circleResultSettings
-        self.isHighlighted = isHighlighted
-        self.isFaded = isFaded
-    }
-    
+    @ObservedObject private var settingsStore = AppSettingsStore.shared
+
+    private var circleResultSettings: CircleResultSettings { settingsStore.circleResultSettings }
+
     private var teamColor: Color {
         TeamColorSettings.color(for: event.team, ourHex: ourTeamColorHex, opponentHex: opponentTeamColorHex)
     }
@@ -1722,13 +1701,13 @@ struct EventCardView: View {
                         Text(infraction.rawValue)
                             .font(.system(size: 11, weight: .semibold))
                     }
-                    .foregroundColor(.orange)
+                    .foregroundColor(AppTheme.warning)
                 } else if let result = event.circleResult, result != .nothing {
                     HStack(spacing: 4) {
                         Text(result.rawValue)
                             .font(.system(size: 11, weight: .semibold))
                     }
-                    .foregroundColor(.green)
+                    .foregroundColor(AppTheme.success)
                 } else if event.eventType == .goal {
                     HStack(spacing: 4) {
                         Text("Goal Scored!")
@@ -1776,7 +1755,7 @@ struct EventCardView: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.red)
+                            .fill(AppTheme.danger)
                     )
                     .padding(.horizontal, 12)
                     .padding(.bottom, 10)
@@ -1953,7 +1932,7 @@ struct EventListRowView: View {
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(width: 32, height: 32)
-                            .background(Circle().fill(Color.red))
+                            .background(Circle().fill(AppTheme.danger))
                     }
                     .buttonStyle(.plain)
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
@@ -2077,7 +2056,7 @@ struct QuarterPill: View {
                 HStack(spacing: 3) {
                     if isLive && !isSelected {
                         Circle()
-                            .fill(Color.green)
+                            .fill(AppTheme.success)
                             .frame(width: 5, height: 5)
                     }
                     Text("\(count)")
@@ -2087,7 +2066,7 @@ struct QuarterPill: View {
                 .padding(.vertical, 3)
                 .background(
                     Capsule()
-                        .fill(isSelected ? Color.white.opacity(0.25) : Color(.systemGray5))
+                        .fill(isSelected ? Color.white.opacity(0.25) : AppTheme.secondarySurfaceFill(colorScheme))
                 )
             }
             .foregroundColor(isSelected ? .white : (isDisabled ? .secondary.opacity(0.4) : .primary))
@@ -2097,7 +2076,7 @@ struct QuarterPill: View {
                     .fill(
                         isSelected
                             ? LinearGradient(colors: gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing)
-                            : LinearGradient(colors: [Color(.systemGray6), Color(.systemGray6)], startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [AppTheme.secondarySurfaceFill(colorScheme), AppTheme.secondarySurfaceFill(colorScheme)], startPoint: .top, endPoint: .bottom)
                     )
             )
         }

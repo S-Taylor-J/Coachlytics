@@ -40,12 +40,12 @@ struct LeaderboardCard: View {
                 // Player number
                 ZStack {
                     Circle()
-                        .fill(Color.blue.opacity(0.15))
+                        .fill(AppTheme.brandAccent.opacity(0.15))
                         .frame(width: 28, height: 28)
 
                     Text("\(player.number)")
                         .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.brandAccent)
                 }
 
                 // Player name
@@ -62,10 +62,7 @@ struct LeaderboardCard: View {
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.7))
-            )
+            .cardSurface(cornerRadius: 10, showShadow: false)
         }
     }
     
@@ -108,25 +105,14 @@ struct LeaderboardCard: View {
             }
         }
         .padding(16)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.12 : 0.06), lineWidth: 0.5)
-            }
-            .shadow(color: color.opacity(colorScheme == .dark ? 0.18 : 0.12), radius: 12, x: 0, y: 8)
-            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.08), radius: 6, x: 0, y: 3)
-        )
+        .cardSurface(cornerRadius: 16, strokeAccent: color)
     }
-    
+
     private func rankColor(for index: Int) -> Color {
         switch index {
-        case 0: return .yellow
+        case 0: return AppTheme.goldAccent
         case 1: return .gray
-        case 2: return .orange
+        case 2: return AppTheme.warning
         default: return .secondary
         }
     }

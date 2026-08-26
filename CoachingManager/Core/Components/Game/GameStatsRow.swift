@@ -51,30 +51,23 @@ struct GameStatsRow: View {
                 VStack(spacing: 2) {
                     Text("\(goals)")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(.purple)
+                        .foregroundColor(AppTheme.purpleAccent)
                     Text("Goals")
-                        .font(.system(size: 8, weight: .medium))
+                        .font(.system(size: 8, weight: .medium, design: .rounded))
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack(spacing: 2) {
                     Text("\(playerEvents.count)")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.brandAccent)
                     Text("Events")
-                        .font(.system(size: 8, weight: .medium))
+                        .font(.system(size: 8, weight: .medium, design: .rounded))
                         .foregroundColor(.secondary)
                 }
             }
         }
         .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
-                )
-        )
+        .cardSurface(cornerRadius: 10, showShadow: false)
     }
 }

@@ -17,6 +17,7 @@ struct FilterView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
     @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
+    @ObservedObject private var settingsStore = AppSettingsStore.shared
     
     private var hasActiveFilters: Bool {
         selectedTeam != nil || selectedEventType != nil || selectedCircleResult != nil
@@ -154,7 +155,7 @@ struct FilterView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 18))
-                            .foregroundColor(Color(.systemGray3))
+                            .foregroundColor(AppTheme.mutedText(colorScheme))
                     }
                     .buttonStyle(.plain)
                     .transition(.scale.combined(with: .opacity))
@@ -190,10 +191,10 @@ struct FilterView: View {
     
     private var eventColor: Color {
         switch selectedEventType {
-        case .infraction: return .orange
-        case .goal: return .yellow
-        case .circleEntry: return .green
-        case .turnover: return .red
+        case .infraction: return AppTheme.warning
+        case .goal: return AppTheme.goldAccent
+        case .circleEntry: return AppTheme.success
+        case .turnover: return AppTheme.danger
         case nil: return .gray
         }
     }
@@ -213,8 +214,7 @@ struct FilterView: View {
     
     private func circleResultColor(for result: CircleResult?) -> Color {
         guard let result = result else { return .gray }
-        let settings = CircleResultSettings.loadFromDefaults()
-        return settings.appearance(for: result).color
+        return settingsStore.circleResultSettings.appearance(for: result).color
     }
 }
 
@@ -279,7 +279,7 @@ struct FilterPill: View {
             .padding(.vertical, 10)
             .background(
                 Capsule()
-                    .fill(isSelected ? color : Color(.systemGray5))
+                    .fill(isSelected ? color : AppTheme.secondarySurfaceFill(colorScheme))
                     .shadow(
                         color: isSelected ? color.opacity(0.3) : Color.clear,
                         radius: 4,

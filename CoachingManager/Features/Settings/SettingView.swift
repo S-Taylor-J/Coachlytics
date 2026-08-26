@@ -14,7 +14,6 @@ struct SettingsView: View {
     @AppStorage("minPlayersOnPitch") private var minPlayersOnPitch = 11
     @AppStorage("enableSkillFilter") private var enableSkillFilter = false
     @AppStorage("requiredSkills") private var requiredSkills: String = ""
-    @AppStorage("gameSettingsData") private var gameSettingsData: String = ""
     @AppStorage("defaultTeamId") private var defaultTeamId: String = ""
     @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
     @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
@@ -22,6 +21,7 @@ struct SettingsView: View {
     
     @Query(sort: \Team.name) private var teams: [Team]
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
+    @ObservedObject private var settingsStore = AppSettingsStore.shared
 
     // All skills including custom ones
     private var allSkills: [String] {
@@ -34,9 +34,10 @@ struct SettingsView: View {
     }
 
     @State private var selectedSkills: Set<String> = []
-    @State private var gameSettings = GameSettings()
-    @State private var circleResultSettings = CircleResultSettings()
-    
+
+    // Live settings — edits publish straight through the store to every screen.
+    private var circleResultSettings: CircleResultSettings { settingsStore.circleResultSettings }
+
     // Custom options input states
     @State private var newCustomSkill = ""
     @State private var newCustomPosition = ""
@@ -74,7 +75,8 @@ struct SettingsView: View {
             }
             .contentMargins(.bottom, 100, for: .scrollContent)
             .scrollContentBackground(.hidden)
-            .background(backgroundColor)
+            .appBackground()
+            .tint(AppTheme.brandAccent)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .alert("Reset All Settings?", isPresented: $showResetConfirmation) {
@@ -86,22 +88,13 @@ struct SettingsView: View {
                 Text("This will restore all settings and custom options to their defaults.")
             }
             .onAppear {
-                loadSettings()
                 loadSelectedSkills()
-                circleResultSettings = CircleResultSettings.loadFromDefaults()
             }
             .onDisappear {
                 saveSelectedSkills()
-                circleResultSettings.saveToDefaults()
             }
             .onChange(of: selectedSkills) {
                 saveSelectedSkills()
-            }
-            .onChange(of: gameSettings) {
-                saveSettings()
-            }
-            .onChange(of: circleResultSettings) {
-                circleResultSettings.saveToDefaults()
             }
             .navigationDestination(isPresented: $showSkillsManagement) {
                 SkillsManagementView(customOptionsManager: customOptionsManager)
@@ -112,21 +105,9 @@ struct SettingsView: View {
         }
     }
 
-    private var backgroundColor: Color {
-        colorScheme == .dark ? brandMidnight : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-
-    private var brandAccent: Color {
-        Color(red: 0.42, green: 0.70, blue: 1.0)
-    }
-
-    private var brandMidnight: Color {
-        Color(red: 0.05, green: 0.06, blue: 0.09)
-    }
-
     private var generalSection: some View {
         Section {
-            SettingsSectionCard(accent: brandAccent) {
+            SettingsSectionCard(accent: AppTheme.brandAccent) {
                 Picker("Default Team", selection: $defaultTeamId) {
                     Text("None").tag("")
                     ForEach(teams) { team in
@@ -152,7 +133,7 @@ struct SettingsView: View {
             Button {
                 showSkillsManagement = true
             } label: {
-                SettingsSectionCard(accent: brandAccent) {
+                SettingsSectionCard(accent: AppTheme.brandAccent) {
                     HStack {
                         Text("Manage Skills")
                         Spacer()
@@ -173,7 +154,7 @@ struct SettingsView: View {
             Button {
                 showPositionsManagement = true
             } label: {
-                SettingsSectionCard(accent: brandAccent) {
+                SettingsSectionCard(accent: AppTheme.brandAccent) {
                     HStack {
                         Text("Manage Positions")
                         Spacer()
@@ -199,7 +180,7 @@ struct SettingsView: View {
 
     private var skillFilterSection: some View {
         Section {
-            SettingsSectionCard(accent: brandAccent) {
+            SettingsSectionCard(accent: AppTheme.brandAccent) {
                 Toggle("Filter by Required Skills", isOn: $enableSkillFilter)
 
                 if enableSkillFilter {
@@ -222,7 +203,7 @@ struct SettingsView: View {
                                         }
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(Capsule().fill(Color.blue.opacity(0.12)))
+                                        .background(Capsule().fill(AppTheme.brandAccent.opacity(0.12)))
                                     }
                                 }
                             }
@@ -256,7 +237,7 @@ struct SettingsView: View {
 
     private var pitchDisplaySection: some View {
         Section {
-            SettingsSectionCard(accent: brandAccent) {
+            SettingsSectionCard(accent: AppTheme.brandAccent) {
                 Toggle("Show Player Timers", isOn: $showPlayerTimers)
             }
             .listRowInsets(EdgeInsets())
@@ -270,12 +251,12 @@ struct SettingsView: View {
 
     private var eventRecordingSection: some View {
         Section {
-            SettingsSectionCard(accent: brandAccent) {
-                Toggle("Require Player for Infractions", isOn: $gameSettings.requirePlayerForInfractions)
+            SettingsSectionCard(accent: AppTheme.brandAccent) {
+                Toggle("Require Player for Infractions", isOn: $settingsStore.gameSettings.requirePlayerForInfractions)
                 Divider()
-                Toggle("Require Player for Circle Entry", isOn: $gameSettings.requirePlayerForCircleEntry)
+                Toggle("Require Player for Circle Entry", isOn: $settingsStore.gameSettings.requirePlayerForCircleEntry)
                 Divider()
-                Toggle("Require Player for Turnover", isOn: $gameSettings.requirePlayerForTurnover)
+                Toggle("Require Player for Turnover", isOn: $settingsStore.gameSettings.requirePlayerForTurnover)
             }
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
@@ -288,8 +269,8 @@ struct SettingsView: View {
 
     private var eventMarkersSection: some View {
         Section {
-            SettingsSectionCard(accent: brandAccent) {
-                Toggle("Show Symbols on Pitch", isOn: $circleResultSettings.showSymbolsOnPitch)
+            SettingsSectionCard(accent: AppTheme.brandAccent) {
+                Toggle("Show Symbols on Pitch", isOn: $settingsStore.circleResultSettings.showSymbolsOnPitch)
 
                 Divider()
 
@@ -305,7 +286,7 @@ struct SettingsView: View {
                         Image(systemName: "circle.fill")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
-                        Slider(value: $circleResultSettings.eventMarkerSize, in: 0.5...1.5, step: 0.25)
+                        Slider(value: $settingsStore.circleResultSettings.eventMarkerSize, in: 0.5...1.5, step: 0.25)
                         Image(systemName: "circle.fill")
                             .font(.system(size: 18))
                             .foregroundColor(.secondary)
@@ -315,7 +296,7 @@ struct SettingsView: View {
                 Divider()
 
                 NavigationLink {
-                    CircleResultAppearanceView(settings: $circleResultSettings)
+                    CircleResultAppearanceView(settings: $settingsStore.circleResultSettings)
                 } label: {
                     HStack {
                         Text("Customize Colors")
@@ -341,7 +322,7 @@ struct SettingsView: View {
 
     private var teamColorsSection: some View {
         Section {
-            SettingsSectionCard(accent: brandAccent) {
+            SettingsSectionCard(accent: AppTheme.brandAccent) {
                 ColorPicker("Our Team", selection: ourTeamColorBinding, supportsOpacity: false)
                 Divider()
                 ColorPicker("Opponent", selection: opponentTeamColorBinding, supportsOpacity: false)
@@ -357,7 +338,7 @@ struct SettingsView: View {
 
     private var resetSection: some View {
         Section {
-            SettingsSectionCard(accent: brandAccent) {
+            SettingsSectionCard(accent: AppTheme.brandAccent) {
                 Button(role: .destructive) {
                     showResetConfirmation = true
                 } label: {
@@ -409,30 +390,9 @@ struct SettingsView: View {
         defaultTeamId = ""
         ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
         opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
-        gameSettings = GameSettings() // Reset to default game settings
-        circleResultSettings = CircleResultSettings() // Reset circle result settings
-        circleResultSettings.saveToDefaults()
+        settingsStore.resetToDefaults() // Resets game + circle result settings and persists them
         customOptionsManager.resetSkillsToDefaults()
         customOptionsManager.resetPositionsToDefaults()
-        saveSettings() // Save the reset state
-    }
-
-    private func saveSettings() {
-        do {
-            let data = try JSONEncoder().encode(gameSettings)
-            gameSettingsData = String(data: data, encoding: String.Encoding.utf8) ?? ""
-        } catch {
-            print("Failed to save settings: \(error)")
-        }
-    }
-
-    private func loadSettings() {
-        guard let data = gameSettingsData.data(using: String.Encoding.utf8) else { return }
-        do {
-            gameSettings = try JSONDecoder().decode(GameSettings.self, from: data)
-        } catch {
-            print("Failed to load settings: \(error)")
-        }
     }
 
 }
@@ -453,14 +413,7 @@ private struct SettingsSectionCard<Content: View>: View {
             content
         }
         .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.6))
-                )
-        )
+        .cardSurface(cornerRadius: 18, strokeAccent: accent, showShadow: false)
     }
 }
 
@@ -561,7 +514,7 @@ struct SkillsManagementView: View {
                                 }
                             }
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.brandAccent)
                         }
                     }
                 } header: {
@@ -583,7 +536,7 @@ struct SkillsManagementView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(backgroundColor)
+        .appBackground()
         .navigationTitle("Manage Skills")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Reset Skills?", isPresented: $showResetAlert) {
@@ -598,10 +551,6 @@ struct SkillsManagementView: View {
         }
     }
 
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-    
     private func addSkill() {
         let trimmed = newSkillName.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
@@ -720,7 +669,7 @@ struct PositionsManagementView: View {
                                 }
                             }
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.brandAccent)
                         }
                     }
                 } header: {
@@ -742,7 +691,7 @@ struct PositionsManagementView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(backgroundColor)
+        .appBackground()
         .navigationTitle("Manage Positions")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Reset Positions?", isPresented: $showResetAlert) {
@@ -757,10 +706,6 @@ struct PositionsManagementView: View {
         }
     }
 
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-    
     private func addPosition() {
         let trimmed = newPositionName.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
@@ -783,7 +728,7 @@ struct SkillRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "star.fill")
-                .foregroundColor(isHidden ? .gray : (isDefault ? .blue : .orange))
+                .foregroundColor(isHidden ? .gray : (isDefault ? AppTheme.brandAccent : AppTheme.warning))
                 .font(.caption)
             
             VStack(alignment: .leading, spacing: 2) {
@@ -796,7 +741,7 @@ struct SkillRowView: View {
                 } else {
                     Text("Custom")
                         .font(.caption2)
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppTheme.warning)
                 }
             }
             
@@ -809,7 +754,7 @@ struct SkillRowView: View {
                 } label: {
                     Image(systemName: isHidden ? "eye.slash.circle" : "checkmark.circle.fill")
                         .font(.title3)
-                        .foregroundColor(isHidden ? .gray : .green)
+                        .foregroundColor(isHidden ? .gray : AppTheme.success)
                 }
             } else {
                 // Delete button for custom skills
@@ -818,7 +763,7 @@ struct SkillRowView: View {
                 } label: {
                     Image(systemName: "trash.circle.fill")
                         .font(.title3)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.danger)
                 }
             }
         }
@@ -838,7 +783,7 @@ struct PositionRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(isHidden ? .gray : (isDefault ? .blue : .orange))
+                .foregroundColor(isHidden ? .gray : (isDefault ? AppTheme.brandAccent : AppTheme.warning))
                 .font(.caption)
                 .frame(width: 20)
             
@@ -852,7 +797,7 @@ struct PositionRowView: View {
                 } else {
                     Text("Custom")
                         .font(.caption2)
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppTheme.warning)
                 }
             }
             
@@ -864,7 +809,7 @@ struct PositionRowView: View {
                 } label: {
                     Image(systemName: isHidden ? "eye.slash.circle" : "checkmark.circle.fill")
                         .font(.title3)
-                        .foregroundColor(isHidden ? .gray : .green)
+                        .foregroundColor(isHidden ? .gray : AppTheme.success)
                 }
             } else {
                 Button {
@@ -872,7 +817,7 @@ struct PositionRowView: View {
                 } label: {
                     Image(systemName: "trash.circle.fill")
                         .font(.title3)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.danger)
                 }
             }
         }
@@ -895,7 +840,7 @@ struct SkillChip: View {
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(isSelected ? Color.blue : Color.gray.opacity(0.2))
+                        .fill(isSelected ? AppTheme.brandAccent : Color.gray.opacity(0.2))
                 )
                 .foregroundColor(isSelected ? .white : .primary)
         }
@@ -1125,7 +1070,7 @@ struct CircleResultAppearanceView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(backgroundColor)
+            .appBackground()
         }
         .navigationTitle("Outcome Colors")
         .navigationBarTitleDisplayMode(.inline)
@@ -1138,10 +1083,6 @@ struct CircleResultAppearanceView: View {
         }
     }
 
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-    
     private func shortName(for result: CircleResult) -> String {
         switch result {
         case .goal: return "Goal"
@@ -1253,7 +1194,7 @@ struct OutcomePreviewRow: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(colorScheme == .dark ? Color(.systemGray6) : Color(.systemGray6).opacity(0.5))
+                .fill(AppTheme.secondarySurfaceFill(colorScheme))
         )
     }
     
@@ -1313,7 +1254,7 @@ struct OutcomeEditSheet: View {
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(colorScheme == .dark ? Color(.systemGray6) : Color(.systemGray6).opacity(0.5))
+                            .fill(AppTheme.secondarySurfaceFill(colorScheme))
                     )
                     
                     VStack(alignment: .leading, spacing: 10) {
@@ -1338,7 +1279,7 @@ struct OutcomeEditSheet: View {
                                 .foregroundStyle(.tertiary)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(Capsule().fill(Color(.systemGray5)))
+                                .background(Capsule().fill(AppTheme.secondarySurfaceFill(colorScheme)))
                         }
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 8) {
                             ForEach(availableSymbols, id: \.self) { symbol in
@@ -1357,7 +1298,7 @@ struct OutcomeEditSheet: View {
                 }
                 .padding(16)
             }
-            .background(backgroundColor)
+            .appBackground()
             .navigationTitle("Edit Outcome")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1370,10 +1311,6 @@ struct OutcomeEditSheet: View {
         }
     }
 
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-    
     private func symbolName(for symbol: String) -> String {
         symbol.replacingOccurrences(of: ".fill", with: "")
             .replacingOccurrences(of: ".", with: " ")
@@ -1446,7 +1383,7 @@ struct SymbolSelectionButton: View {
                             endPoint: .bottomTrailing
                           )
                         : LinearGradient(
-                            colors: [Color(.systemGray5), Color(.systemGray5)],
+                            colors: [AppTheme.secondarySurfaceFill(colorScheme), AppTheme.secondarySurfaceFill(colorScheme)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                           )

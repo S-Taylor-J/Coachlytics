@@ -21,9 +21,9 @@ struct UpcomingEventRow: View {
     
     private var iconColor: Color {
         switch event.type {
-        case .game: return .green
-        case .training: return .blue
-        case .note: return .orange
+        case .game: return AppTheme.success
+        case .training: return AppTheme.brandAccent
+        case .note: return AppTheme.warning
         }
     }
     
@@ -63,14 +63,7 @@ struct UpcomingEventRow: View {
                 )
         }
         .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
-                )
-        )
+        .cardSurface(cornerRadius: 10)
     }
     
     private var formattedDate: String {

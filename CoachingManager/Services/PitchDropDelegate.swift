@@ -67,9 +67,12 @@ struct PitchDropDelegate: DropDelegate {
             }
             
             DispatchQueue.main.async {
-                // Calculate constrained position
+                // Calculate constrained position, in points
                 let constrainedX = min(max(30, location.x), pitchSize.width - 30)
                 let constrainedY = min(max(30, location.y), pitchSize.height - 30)
+                // Stored normalized, so the drop survives the pitch resizing
+                let unitX = constrainedX / max(pitchSize.width, 1)
+                let unitY = constrainedY / max(pitchSize.height, 1)
                 
                 // Success haptic
                 let generator = UINotificationFeedbackGenerator()
@@ -81,7 +84,7 @@ struct PitchDropDelegate: DropDelegate {
                         PitchPlayer(
                             id: UUID(),
                             player: player,
-                            position: CGPoint(x: constrainedX, y: constrainedY)
+                            position: CGPoint(x: unitX, y: unitY)
                         )
                     )
                 }

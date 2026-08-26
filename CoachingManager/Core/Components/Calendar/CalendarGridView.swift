@@ -52,7 +52,7 @@ struct CalendarGridView: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.brandAccent)
                 }
                 
                 Spacer()
@@ -69,7 +69,7 @@ struct CalendarGridView: View {
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.brandAccent)
                 }
             }
             
@@ -137,21 +137,21 @@ struct CalendarDayCell: View {
         Button(action: action) {
             VStack(spacing: 2) {
                 Text("\(calendar.component(.day, from: date))")
-                    .font(.system(size: 14, weight: isSelected || isToday ? .bold : .medium))
+                    .font(.system(size: 14, weight: isSelected || isToday ? .bold : .medium, design: .rounded))
                     .foregroundColor(
-                        isSelected ? .white : (isToday ? .blue : .primary)
+                        isSelected ? .white : (isToday ? AppTheme.brandAccent : .primary)
                     )
-                
+
                 // Indicators
                 HStack(spacing: 2) {
                     if hasGame {
                         Circle()
-                            .fill(Color.green)
+                            .fill(AppTheme.success)
                             .frame(width: 4, height: 4)
                     }
                     if hasNote {
                         Circle()
-                            .fill(Color.orange)
+                            .fill(AppTheme.warning)
                             .frame(width: 4, height: 4)
                     }
                 }
@@ -162,10 +162,10 @@ struct CalendarDayCell: View {
                 ZStack {
                     if isSelected {
                         Circle()
-                            .fill(Color.accentColor)
+                            .fill(AppTheme.brandAccent)
                     } else if isToday {
                         Circle()
-                            .stroke(Color.accentColor, lineWidth: 2)
+                            .stroke(AppTheme.brandAccent, lineWidth: 2)
                     }
                 }
             )

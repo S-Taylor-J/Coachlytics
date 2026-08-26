@@ -176,7 +176,7 @@ struct MultiStepFormView: View {
                         .padding(.bottom, 16)
                 }
             }
-            .background(backgroundColor.ignoresSafeArea())
+            .background(AppBackgroundView())
             .navigationTitle(getStepTitle())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -193,21 +193,12 @@ struct MultiStepFormView: View {
         }
     }
     
-    // MARK: - Background
-    private var backgroundGradient: some View {
-        backgroundColor
-    }
-
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.05, green: 0.06, blue: 0.09) : Color(red: 0.97, green: 0.98, blue: 1.0)
-    }
-    
     // MARK: - Progress Bar
     private var progressBar: some View {
         HStack(spacing: 4) {
             ForEach(0..<getTotalSteps(), id: \.self) { step in
                 Capsule()
-                    .fill(step <= currentStep ? Color.blue : Color(.systemGray4))
+                    .fill(step <= currentStep ? AppTheme.brandAccent : AppTheme.strokeColor(colorScheme))
                     .frame(height: 4)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStep)
             }
@@ -234,10 +225,10 @@ struct MultiStepFormView: View {
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.white.opacity(0.8))
+                    .fill(AppTheme.surfaceFill(colorScheme))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.35), lineWidth: 1)
+                            .stroke(AppTheme.strokeColor(colorScheme), lineWidth: 1)
                     )
             )
         }
@@ -372,10 +363,10 @@ struct EventTypeCard: View {
     
     private var color: Color {
         switch type {
-        case .infraction: return .orange
-        case .circleEntry: return .green
-        case .turnover: return .red
-        case .goal: return .yellow
+        case .infraction: return AppTheme.warning
+        case .circleEntry: return AppTheme.success
+        case .turnover: return AppTheme.danger
+        case .goal: return AppTheme.goldAccent
         }
     }
     
@@ -416,10 +407,10 @@ struct EventTypeCard: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 24))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.brandAccent)
                 } else {
                     Circle()
-                        .stroke(Color(.systemGray4), lineWidth: 2)
+                        .stroke(AppTheme.strokeColor(colorScheme), lineWidth: 2)
                         .frame(width: 24, height: 24)
                 }
             }
@@ -557,7 +548,7 @@ struct PlayerSelectionStep: View {
         }
         .padding(16)
         .background(
-            GameCardSurface(accent: .blue)
+            GameCardSurface(accent: AppTheme.brandAccent)
         )
     }
 }
@@ -567,13 +558,14 @@ struct PlayerChip: View {
     let player: Player
     let isSelected: Bool
     let action: () -> Void
-    
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(isSelected ? Color.blue : Color(.systemGray5))
+                        .fill(isSelected ? AppTheme.brandAccent : AppTheme.secondarySurfaceFill(colorScheme))
                         .frame(width: 50, height: 50)
                     
                     Text("\(player.number)")
@@ -583,7 +575,7 @@ struct PlayerChip: View {
                 
                 Text(player.name.split(separator: " ").last.map(String.init) ?? player.name)
                     .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundColor(isSelected ? .blue : .secondary)
+                    .foregroundColor(isSelected ? AppTheme.brandAccent : .secondary)
                     .lineLimit(1)
             }
         }
@@ -622,7 +614,7 @@ struct PlayerSelectionWithSkipStep: View {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(selectedPlayerId == nil ? Color.gray : Color(.systemGray5))
+                            .fill(selectedPlayerId == nil ? Color.gray : AppTheme.secondarySurfaceFill(colorScheme))
                             .frame(width: 50, height: 50)
                         
                         Image(systemName: "forward.fill")
@@ -645,7 +637,7 @@ struct PlayerSelectionWithSkipStep: View {
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(selectedPlayerId == nil ? Color.gray.opacity(0.1) : Color(.systemGray6))
+                        .fill(selectedPlayerId == nil ? Color.gray.opacity(0.1) : AppTheme.secondarySurfaceFill(colorScheme))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
@@ -657,13 +649,13 @@ struct PlayerSelectionWithSkipStep: View {
             // Divider
             HStack {
                 Rectangle()
-                    .fill(Color(.systemGray4))
+                    .fill(AppTheme.strokeColor(colorScheme))
                     .frame(height: 1)
                 Text("or select player")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.secondary)
                 Rectangle()
-                    .fill(Color(.systemGray4))
+                    .fill(AppTheme.strokeColor(colorScheme))
                     .frame(height: 1)
             }
             
@@ -684,7 +676,7 @@ struct PlayerSelectionWithSkipStep: View {
         }
         .padding(16)
         .background(
-            GameCardSurface(accent: .blue)
+            GameCardSurface(accent: AppTheme.brandAccent)
         )
     }
 }
@@ -708,11 +700,11 @@ struct GoalTypeStep: View {
                     HStack(spacing: 14) {
                         Image(systemName: type.icon)
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(selectedGoalType == type ? .white : .yellow)
+                            .foregroundColor(selectedGoalType == type ? .white : AppTheme.goldAccent)
                             .frame(width: 44, height: 44)
                             .background(
                                 Circle()
-                                    .fill(selectedGoalType == type ? Color.yellow : Color.yellow.opacity(0.15))
+                                    .fill(selectedGoalType == type ? AppTheme.goldAccent : AppTheme.goldAccent.opacity(0.15))
                             )
                         
                         VStack(alignment: .leading, spacing: 2) {
@@ -730,12 +722,12 @@ struct GoalTypeStep: View {
                         if selectedGoalType == type {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 22))
-                                .foregroundColor(.yellow)
+                                .foregroundColor(AppTheme.goldAccent)
                         }
                     }
                     .padding(14)
                     .background(
-                        GameCardSurface(accent: selectedGoalType == type ? .yellow : .gray, cornerRadius: 14)
+                        GameCardSurface(accent: selectedGoalType == type ? AppTheme.goldAccent : .gray, cornerRadius: 14)
                     )
                 }
                 .buttonStyle(.plain)
@@ -780,17 +772,17 @@ struct InfractionDetailsStep: View {
                                 if selectedInfraction == infraction {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(AppTheme.warning)
                                 }
                             }
                             .padding(14)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(selectedInfraction == infraction ? Color.orange.opacity(0.1) : Color(.systemBackground))
+                                    .fill(selectedInfraction == infraction ? AppTheme.warning.opacity(0.1) : AppTheme.surfaceFill(colorScheme))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(selectedInfraction == infraction ? Color.orange : Color(.systemGray5), lineWidth: 1)
+                                    .stroke(selectedInfraction == infraction ? AppTheme.warning : AppTheme.strokeColor(colorScheme), lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -817,7 +809,7 @@ struct InfractionDetailsStep: View {
                                         .frame(width: 36, height: 48)
                                         .background(
                                             RoundedRectangle(cornerRadius: 6)
-                                                .fill(Color(.systemGray5))
+                                                .fill(AppTheme.secondarySurfaceFill(colorScheme))
                                         )
                                 } else {
                                     RoundedRectangle(cornerRadius: 6)
@@ -833,11 +825,11 @@ struct InfractionDetailsStep: View {
                             .padding(8)
                             .background(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedCardType == card ? Color(.systemGray5) : Color.clear)
+                                    .fill(selectedCardType == card ? AppTheme.secondarySurfaceFill(colorScheme) : Color.clear)
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .stroke(selectedCardType == card ? Color.blue : Color.clear, lineWidth: 2)
+                                    .stroke(selectedCardType == card ? AppTheme.brandAccent : Color.clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
@@ -860,14 +852,14 @@ struct InfractionDetailsStep: View {
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.orange)
+                        .fill(AppTheme.warning)
                 )
             }
             .padding(.top, 8)
         }
         .padding(16)
         .background(
-            GameCardSurface(accent: .orange)
+            GameCardSurface(accent: AppTheme.warning)
         )
     }
 }
@@ -903,11 +895,11 @@ struct CircleResultStep: View {
                     HStack(spacing: 14) {
                         Image(systemName: iconFor(result))
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(selectedCircleResult == result ? .white : .green)
+                            .foregroundColor(selectedCircleResult == result ? .white : AppTheme.success)
                             .frame(width: 40, height: 40)
                             .background(
                                 Circle()
-                                    .fill(selectedCircleResult == result ? Color.green : Color.green.opacity(0.1))
+                                    .fill(selectedCircleResult == result ? AppTheme.success : AppTheme.success.opacity(0.1))
                             )
                         
                         Text(result.rawValue)
@@ -919,12 +911,12 @@ struct CircleResultStep: View {
                         if selectedCircleResult == result {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 22))
-                                .foregroundColor(.green)
+                                .foregroundColor(AppTheme.success)
                         }
                     }
                     .padding(14)
                     .background(
-                        GameCardSurface(accent: selectedCircleResult == result ? .green : .gray, cornerRadius: 14)
+                        GameCardSurface(accent: selectedCircleResult == result ? AppTheme.success : .gray, cornerRadius: 14)
                     )
                 }
                 .buttonStyle(.plain)
@@ -947,7 +939,7 @@ struct GoalConfirmStep: View {
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [Color.yellow.opacity(0.3), Color.yellow.opacity(0.05)],
+                            colors: [AppTheme.goldAccent.opacity(0.3), AppTheme.goldAccent.opacity(0.05)],
                             center: .center,
                             startRadius: 20,
                             endRadius: 80
@@ -957,7 +949,7 @@ struct GoalConfirmStep: View {
                 
                 Image(systemName: "soccerball")
                     .font(.system(size: 70))
-                    .foregroundColor(.yellow)
+                    .foregroundColor(AppTheme.goldAccent)
                     .scaleEffect(animateScale ? 1.1 : 1.0)
                     .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: animateScale)
             }
@@ -966,7 +958,7 @@ struct GoalConfirmStep: View {
                 Text("GOAL!")
                     .font(.system(size: 36, weight: .black, design: .rounded))
                     .foregroundStyle(
-                        LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing)
+                        LinearGradient(colors: [AppTheme.goldAccent, AppTheme.warning], startPoint: .leading, endPoint: .trailing)
                     )
                 
                 // Goal type badge
@@ -976,12 +968,12 @@ struct GoalConfirmStep: View {
                     Text(selectedGoalType.rawValue)
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                 }
-                .foregroundColor(.yellow)
+                .foregroundColor(AppTheme.goldAccent)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(Color.yellow.opacity(0.15))
+                        .fill(AppTheme.goldAccent.opacity(0.15))
                 )
                 
                 Text("This will update the score automatically")
@@ -1004,14 +996,14 @@ struct GoalConfirmStep: View {
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.yellow)
+                        .fill(AppTheme.goldAccent)
                 )
             }
             .padding(.top, 8)
         }
         .padding(32)
         .background(
-            GameCardSurface(accent: .yellow, cornerRadius: 20)
+            GameCardSurface(accent: AppTheme.goldAccent, cornerRadius: 20)
         )
         .onAppear {
             animateScale = true
@@ -1032,7 +1024,7 @@ struct TurnoverConfirmStep: View {
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [Color.red.opacity(0.3), Color.red.opacity(0.05)],
+                            colors: [AppTheme.danger.opacity(0.3), AppTheme.danger.opacity(0.05)],
                             center: .center,
                             startRadius: 20,
                             endRadius: 80
@@ -1042,7 +1034,7 @@ struct TurnoverConfirmStep: View {
                 
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 60))
-                    .foregroundColor(.red)
+                    .foregroundColor(AppTheme.danger)
                     .rotationEffect(.degrees(animateRotation ? 360 : 0))
                     .animation(.linear(duration: 2).repeatForever(autoreverses: false), value: animateRotation)
             }
@@ -1051,7 +1043,7 @@ struct TurnoverConfirmStep: View {
                 Text("Turnover")
                     .font(.system(size: 32, weight: .black, design: .rounded))
                     .foregroundStyle(
-                        LinearGradient(colors: [.red, .orange], startPoint: .leading, endPoint: .trailing)
+                        LinearGradient(colors: [AppTheme.danger, AppTheme.warning], startPoint: .leading, endPoint: .trailing)
                     )
                 
                 Text("Lost possession recorded")
@@ -1074,14 +1066,14 @@ struct TurnoverConfirmStep: View {
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.red)
+                        .fill(AppTheme.danger)
                 )
             }
             .padding(.top, 8)
         }
         .padding(32)
         .background(
-            GameCardSurface(accent: .red, cornerRadius: 20)
+            GameCardSurface(accent: AppTheme.danger, cornerRadius: 20)
         )
         .onAppear {
             animateRotation = true

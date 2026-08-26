@@ -17,10 +17,10 @@ enum NotificationType {
     
     var color: Color {
         switch self {
-        case .warning: return .orange
-        case .error: return .red
-        case .info: return .blue
-        case .success: return .green
+        case .warning: return AppTheme.warning
+        case .error: return AppTheme.danger
+        case .info: return AppTheme.brandAccent
+        case .success: return AppTheme.success
         }
     }
     

@@ -13,9 +13,9 @@ struct FormBadge: View {
     
     private var color: Color {
         switch result {
-        case "Win": return .green
-        case "Loss": return .red
-        default: return .gray
+        case "Win": return AppTheme.success
+        case "Loss": return AppTheme.danger
+        default: return AppTheme.warning
         }
     }
     

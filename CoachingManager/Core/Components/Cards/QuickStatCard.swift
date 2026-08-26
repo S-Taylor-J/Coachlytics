@@ -44,28 +44,20 @@ struct QuickStatCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                
+                    .foregroundStyle(AppTheme.primaryText(colorScheme))
+
                 Text(title)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundColor(.secondary)
-                
+                    .foregroundStyle(AppTheme.secondaryText(colorScheme))
+
                 Text(subtitle)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary.opacity(0.7))
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(AppTheme.mutedText(colorScheme))
             }
         }
         .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.white.opacity(0.7))
-                )
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.08), radius: 6, x: 0, y: 3)
-        )
+        .cardSurface(cornerRadius: 14)
     }
 }
 
