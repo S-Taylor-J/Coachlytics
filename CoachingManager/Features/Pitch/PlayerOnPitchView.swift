@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PlayerOnPitchView: View {
     let player: Player
+    /// Unit-space position (0...1), see `PitchPlayer.position`.
     @Binding var position: CGPoint
     let pitchSize: CGSize
     let quarterPlayPercentage: Double // 0.0 to 1.0
@@ -38,6 +39,20 @@ struct PlayerOnPitchView: View {
     @State private var isPressed = false
     @State private var showSwapHint = false
     
+    // MARK: - Unit space <-> points
+    // GeometryReader reports .zero on its first pass, so guard every divisor.
+    private var safePitchWidth: CGFloat { max(pitchSize.width, 1) }
+    private var safePitchHeight: CGFloat { max(pitchSize.height, 1) }
+
+    /// The unit-space `position` resolved into the pitch's point coordinate space.
+    private var pointPosition: CGPoint {
+        CGPoint(x: position.x * safePitchWidth, y: position.y * safePitchHeight)
+    }
+
+    private func unitPoint(fromPointX x: CGFloat, y: CGFloat) -> CGPoint {
+        CGPoint(x: x / safePitchWidth, y: y / safePitchHeight)
+    }
+
     // Size multiplier based on device
     private var sizeMultiplier: CGFloat { isCompact ? 0.7 : 1.0 }
     
@@ -210,7 +225,7 @@ struct PlayerOnPitchView: View {
 //            .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
         }
         .offset(dragOffset)
-        .position(position)
+        .position(pointPosition)
         .zIndex(isDragging ? 100 : 0) // Bring to front when dragging
         .gesture(
             DragGesture(minimumDistance: 0)
@@ -219,8 +234,8 @@ struct PlayerOnPitchView: View {
                         // Record start time to detect taps
                         dragStartTime = Date()
                         isPressed = true
-                        // Start dragging
-                        lastPosition = position
+                        // Start dragging — drag math runs in points
+                        lastPosition = pointPosition
                         startDragAnimation()
                         
                         // Haptic feedback
@@ -234,8 +249,8 @@ struct PlayerOnPitchView: View {
                     }
                     
                     // Check bench proximity (any edge)
-                    let currentX = position.x + value.translation.width
-                    let currentY = position.y + value.translation.height
+                    let currentX = pointPosition.x + value.translation.width
+                    let currentY = pointPosition.y + value.translation.height
                     let leftThreshold = edgeMargin
                     let topThreshold = edgeMargin
                     let rightThreshold = edgeMargin - 10
@@ -295,7 +310,7 @@ struct PlayerOnPitchView: View {
                         
                         // Spring animation for satisfying drop
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.65, blendDuration: 0)) {
-                            position = CGPoint(x: constrainedX, y: constrainedY)
+                            position = unitPoint(fromPointX: constrainedX, y: constrainedY)
                             dragOffset = .zero
                             rotationAngle = 0
                         }

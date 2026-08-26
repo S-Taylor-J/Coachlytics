@@ -750,6 +750,21 @@ struct PitchView: View {
         }
     }
 
+    /// Converts formations saved before positions were normalized (absolute points) into
+    /// unit space. Runs once against a real pitch size — valid unit values are always <= 1,
+    /// so it can never fire again afterwards.
+    private func normalizeLegacyPositionsIfNeeded(pitchSize: CGSize) {
+        guard pitchSize.width > 0, pitchSize.height > 0 else { return }
+        guard pitchPlayers.contains(where: { $0.position.x > 1 || $0.position.y > 1 }) else { return }
+        for index in pitchPlayers.indices {
+            pitchPlayers[index].position = CGPoint(
+                x: pitchPlayers[index].position.x / pitchSize.width,
+                y: pitchPlayers[index].position.y / pitchSize.height
+            )
+        }
+        savePositions()
+    }
+
     private func prunePitchPlayersToAvailable() {
         let availableIds = Set(filteredPlayers.map { $0.id })
         if pitchPlayers.contains(where: { !availableIds.contains($0.player.id) }) {
@@ -1232,6 +1247,9 @@ extension PitchView {
                     dropLocation: $dropLocation
                 )
             )
+            .onChange(of: geo.size, initial: true) { _, newSize in
+                normalizeLegacyPositionsIfNeeded(pitchSize: newSize)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
          .aspectRatio(1024/1536, contentMode: .fit)
@@ -1299,6 +1317,9 @@ extension PitchView {
                     dropLocation: $dropLocation
                 )
             )
+            .onChange(of: geo.size, initial: true) { _, newSize in
+                normalizeLegacyPositionsIfNeeded(pitchSize: newSize)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .aspectRatio(1024/1536, contentMode: .fit)
