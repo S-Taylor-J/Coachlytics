@@ -16,7 +16,7 @@ enum Tab {
 }
 
 struct RootView: View {
-    @State private var selectedTab: Tab = .home
+    @State private var selectedTab: Tab = .pitch // TEMP DIAGNOSTIC
     
     var body: some View {
         VStack(spacing: 0) {
@@ -39,7 +39,7 @@ struct RootView: View {
             
             CustomTabBar(selectedTab: $selectedTab)
         }
-        .ignoresSafeArea(edges: .bottom)
+        // The bar keeps itself inside the safe area; only its backdrop bleeds to the edge.
         .ignoresSafeArea(.keyboard)
     }
 }
