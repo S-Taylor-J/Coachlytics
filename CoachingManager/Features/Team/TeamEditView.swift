@@ -143,6 +143,7 @@ struct AddEditView: View {
                                 }
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                                 .contextMenu {
                                     Button {
                                         playerToEdit = player
