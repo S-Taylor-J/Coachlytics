@@ -149,9 +149,10 @@ struct PitchView: View {
     @AppStorage("defaultTeamId") private var defaultTeamId: String = ""
     @AppStorage("activeGameId") private var activeGameId: String = ""
     
-    // Game settings for quarter duration
-    @State private var gameSettings = GameSettings()
-    
+    // Game settings for quarter duration — observed so Settings edits apply immediately
+    @ObservedObject private var settingsStore = AppSettingsStore.shared
+    private var gameSettings: GameSettings { settingsStore.gameSettings }
+
     private var playableGames: [Game] {
         activeGames.filter { !$0.isScheduled || $0.isGameActive }
     }
@@ -674,12 +675,6 @@ struct PitchView: View {
     
     // MARK: Load Game Settings
     private func loadGameSettings() {
-        if let settingsString = UserDefaults.standard.string(forKey: "gameSettingsData"),
-           let data = settingsString.data(using: .utf8),
-           let settings = try? JSONDecoder().decode(GameSettings.self, from: data) {
-            gameSettings = settings
-        }
-        
         // Sync activeQuarterDuration from current game (priority) or settings
         if let game = currentGame {
             let gameTimer = GameTimerService.shared.timer(for: game)

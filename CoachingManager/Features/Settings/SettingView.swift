@@ -14,7 +14,6 @@ struct SettingsView: View {
     @AppStorage("minPlayersOnPitch") private var minPlayersOnPitch = 11
     @AppStorage("enableSkillFilter") private var enableSkillFilter = false
     @AppStorage("requiredSkills") private var requiredSkills: String = ""
-    @AppStorage("gameSettingsData") private var gameSettingsData: String = ""
     @AppStorage("defaultTeamId") private var defaultTeamId: String = ""
     @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
     @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
@@ -22,6 +21,7 @@ struct SettingsView: View {
     
     @Query(sort: \Team.name) private var teams: [Team]
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
+    @ObservedObject private var settingsStore = AppSettingsStore.shared
 
     // All skills including custom ones
     private var allSkills: [String] {
@@ -34,9 +34,10 @@ struct SettingsView: View {
     }
 
     @State private var selectedSkills: Set<String> = []
-    @State private var gameSettings = GameSettings()
-    @State private var circleResultSettings = CircleResultSettings()
-    
+
+    // Live settings — edits publish straight through the store to every screen.
+    private var circleResultSettings: CircleResultSettings { settingsStore.circleResultSettings }
+
     // Custom options input states
     @State private var newCustomSkill = ""
     @State private var newCustomPosition = ""
@@ -87,22 +88,13 @@ struct SettingsView: View {
                 Text("This will restore all settings and custom options to their defaults.")
             }
             .onAppear {
-                loadSettings()
                 loadSelectedSkills()
-                circleResultSettings = CircleResultSettings.loadFromDefaults()
             }
             .onDisappear {
                 saveSelectedSkills()
-                circleResultSettings.saveToDefaults()
             }
             .onChange(of: selectedSkills) {
                 saveSelectedSkills()
-            }
-            .onChange(of: gameSettings) {
-                saveSettings()
-            }
-            .onChange(of: circleResultSettings) {
-                circleResultSettings.saveToDefaults()
             }
             .navigationDestination(isPresented: $showSkillsManagement) {
                 SkillsManagementView(customOptionsManager: customOptionsManager)
@@ -260,11 +252,11 @@ struct SettingsView: View {
     private var eventRecordingSection: some View {
         Section {
             SettingsSectionCard(accent: AppTheme.brandAccent) {
-                Toggle("Require Player for Infractions", isOn: $gameSettings.requirePlayerForInfractions)
+                Toggle("Require Player for Infractions", isOn: $settingsStore.gameSettings.requirePlayerForInfractions)
                 Divider()
-                Toggle("Require Player for Circle Entry", isOn: $gameSettings.requirePlayerForCircleEntry)
+                Toggle("Require Player for Circle Entry", isOn: $settingsStore.gameSettings.requirePlayerForCircleEntry)
                 Divider()
-                Toggle("Require Player for Turnover", isOn: $gameSettings.requirePlayerForTurnover)
+                Toggle("Require Player for Turnover", isOn: $settingsStore.gameSettings.requirePlayerForTurnover)
             }
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
@@ -278,7 +270,7 @@ struct SettingsView: View {
     private var eventMarkersSection: some View {
         Section {
             SettingsSectionCard(accent: AppTheme.brandAccent) {
-                Toggle("Show Symbols on Pitch", isOn: $circleResultSettings.showSymbolsOnPitch)
+                Toggle("Show Symbols on Pitch", isOn: $settingsStore.circleResultSettings.showSymbolsOnPitch)
 
                 Divider()
 
@@ -294,7 +286,7 @@ struct SettingsView: View {
                         Image(systemName: "circle.fill")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
-                        Slider(value: $circleResultSettings.eventMarkerSize, in: 0.5...1.5, step: 0.25)
+                        Slider(value: $settingsStore.circleResultSettings.eventMarkerSize, in: 0.5...1.5, step: 0.25)
                         Image(systemName: "circle.fill")
                             .font(.system(size: 18))
                             .foregroundColor(.secondary)
@@ -304,7 +296,7 @@ struct SettingsView: View {
                 Divider()
 
                 NavigationLink {
-                    CircleResultAppearanceView(settings: $circleResultSettings)
+                    CircleResultAppearanceView(settings: $settingsStore.circleResultSettings)
                 } label: {
                     HStack {
                         Text("Customize Colors")
@@ -398,30 +390,9 @@ struct SettingsView: View {
         defaultTeamId = ""
         ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
         opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
-        gameSettings = GameSettings() // Reset to default game settings
-        circleResultSettings = CircleResultSettings() // Reset circle result settings
-        circleResultSettings.saveToDefaults()
+        settingsStore.resetToDefaults() // Resets game + circle result settings and persists them
         customOptionsManager.resetSkillsToDefaults()
         customOptionsManager.resetPositionsToDefaults()
-        saveSettings() // Save the reset state
-    }
-
-    private func saveSettings() {
-        do {
-            let data = try JSONEncoder().encode(gameSettings)
-            gameSettingsData = String(data: data, encoding: String.Encoding.utf8) ?? ""
-        } catch {
-            print("Failed to save settings: \(error)")
-        }
-    }
-
-    private func loadSettings() {
-        guard let data = gameSettingsData.data(using: String.Encoding.utf8) else { return }
-        do {
-            gameSettings = try JSONDecoder().decode(GameSettings.self, from: data)
-        } catch {
-            print("Failed to load settings: \(error)")
-        }
     }
 
 }

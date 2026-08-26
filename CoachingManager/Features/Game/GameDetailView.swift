@@ -38,9 +38,10 @@ struct GameDetailView: View {
     @State private var selectedCircleResult: CircleResult = .nothing
     @State private var selectedGoalType: GoalType = .openPlay
     
-    // Game settings for form behavior
-    @State private var gameSettings = GameSettings()
-    
+    // Game settings for form behavior — observed so Settings edits apply immediately
+    @ObservedObject private var settingsStore = AppSettingsStore.shared
+    private var gameSettings: GameSettings { settingsStore.gameSettings }
+
     // Event highlighting and repositioning state
     @State private var highlightedEventId: UUID? = nil
     
@@ -273,13 +274,6 @@ struct GameDetailView: View {
                 activeGameId = game.id.uuidString
                 PlayerTimeService.shared.ensureActiveStintsFromDefaults(gameId: game.id)
             }
-            // Load game settings
-            if let settingsString = UserDefaults.standard.string(forKey: "gameSettingsData"),
-               let data = settingsString.data(using: .utf8),
-               let settings = try? JSONDecoder().decode(GameSettings.self, from: data) {
-                gameSettings = settings
-            }
-            
             // Set up save callback for timer
             gameTimer.onSave { [weak modelContext] timer in
                 guard let context = modelContext else { return }
@@ -1513,20 +1507,15 @@ struct CircleEntryAnalysisCard: View {
 // MARK: - Event Marker View
 struct EventMarkerView: View {
     let event: GameEvent
-    let circleResultSettings: CircleResultSettings
-    let isHighlighted: Bool
-    let isFaded: Bool
-    
+    var isHighlighted: Bool = false
+    var isFaded: Bool = false
+
     @AppStorage(TeamColorSettings.ourTeamColorKey) private var ourTeamColorHex = TeamColorSettings.defaultOurTeamHex
     @AppStorage(TeamColorSettings.opponentTeamColorKey) private var opponentTeamColorHex = TeamColorSettings.defaultOpponentHex
-    
-    init(event: GameEvent, circleResultSettings: CircleResultSettings = CircleResultSettings.loadFromDefaults(), isHighlighted: Bool = false, isFaded: Bool = false) {
-        self.event = event
-        self.circleResultSettings = circleResultSettings
-        self.isHighlighted = isHighlighted
-        self.isFaded = isFaded
-    }
-    
+    @ObservedObject private var settingsStore = AppSettingsStore.shared
+
+    private var circleResultSettings: CircleResultSettings { settingsStore.circleResultSettings }
+
     private var teamColor: Color {
         TeamColorSettings.color(for: event.team, ourHex: ourTeamColorHex, opponentHex: opponentTeamColorHex)
     }
