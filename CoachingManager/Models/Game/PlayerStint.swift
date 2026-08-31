@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct PlayerStint: Codable {
+struct PlayerStint: Codable, Equatable {
     var startTime: TimeInterval
     var endTime: TimeInterval?
 }

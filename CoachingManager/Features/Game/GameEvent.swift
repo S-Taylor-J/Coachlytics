@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import Combine
 
-struct GameEvent: Identifiable, Codable {
+struct GameEvent: Identifiable, Codable, Equatable {
     let id: UUID
     let timestamp: Date
     let gameClockTime: TimeInterval?
