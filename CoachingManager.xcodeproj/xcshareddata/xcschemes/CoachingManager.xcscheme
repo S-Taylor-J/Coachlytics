@@ -50,6 +50,9 @@
             ReferencedContainer = "container:CoachingManager.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference
+         identifier = "../../../CoachingManager/Resources/Coachlytics.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

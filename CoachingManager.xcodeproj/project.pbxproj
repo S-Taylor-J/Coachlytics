@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		EEC10A042F9200000000AA04 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = EEC10A022F9200000000AA02 /* FirebaseAuth */; };
+		EEC10A052F9200000000AA05 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = EEC10A032F9200000000AA03 /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		EE379AB62F0D77CA000C5621 /* CoachingManager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoachingManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -15,6 +20,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Resources/Coachlytics.storekit,
 			);
 			target = EE379AB52F0D77CA000C5621 /* CoachingManager */;
 		};
@@ -36,6 +42,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EEC10A042F9200000000AA04 /* FirebaseAuth in Frameworks */,
+				EEC10A052F9200000000AA05 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +86,8 @@
 			);
 			name = CoachingManager;
 			packageProductDependencies = (
+				EEC10A022F9200000000AA02 /* FirebaseAuth */,
+				EEC10A032F9200000000AA03 /* FirebaseFirestore */,
 			);
 			productName = CoachingManager;
 			productReference = EE379AB62F0D77CA000C5621 /* CoachingManager.app */;
@@ -107,6 +117,9 @@
 			);
 			mainGroup = EE379AAD2F0D77CA000C5621;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				EEC10A012F9200000000AA01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = EE379AB72F0D77CA000C5621 /* Products */;
 			projectDirPath = "";
@@ -266,6 +279,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CoachingManager/CoachingManager.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FQDB9ZRDT2;
@@ -284,7 +298,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ts.coachlytics;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -306,6 +320,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CoachingManager/CoachingManager.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FQDB9ZRDT2;
@@ -324,7 +339,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ts.coachlytics;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -363,6 +378,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		EEC10A012F9200000000AA01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		EEC10A022F9200000000AA02 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EEC10A012F9200000000AA01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		EEC10A032F9200000000AA03 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EEC10A012F9200000000AA01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = EE379AAE2F0D77CA000C5621 /* Project object */;
 }

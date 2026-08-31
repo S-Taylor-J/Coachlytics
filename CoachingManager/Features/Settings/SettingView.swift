@@ -22,6 +22,8 @@ struct SettingsView: View {
     @Query(sort: \Team.name) private var teams: [Team]
     @StateObject private var customOptionsManager = CustomOptionsManager.shared
     @ObservedObject private var settingsStore = AppSettingsStore.shared
+    @ObservedObject private var authService = AuthService.shared
+    @ObservedObject private var entitlements = EntitlementStore.shared
 
     // All skills including custom ones
     private var allSkills: [String] {
@@ -46,6 +48,10 @@ struct SettingsView: View {
     @State private var showResetConfirmation = false
     @State private var showSkillsManagement = false
     @State private var showPositionsManagement = false
+    @State private var showSignIn = false
+    @State private var showSignUp = false
+    @State private var showPaywall = false
+    @State private var showAccount = false
     
     private var ourTeamColorBinding: Binding<Color> {
         Binding(
@@ -64,6 +70,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                accountSection
                 generalSection
                 skillsPositionsSection
                 skillFilterSection
@@ -79,6 +86,9 @@ struct SettingsView: View {
             .tint(AppTheme.brandAccent)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showSignIn) { SignInView() }
+            .sheet(isPresented: $showSignUp) { SignUpView() }
+            .sheet(isPresented: $showPaywall) { PaywallView() }
             .alert("Reset All Settings?", isPresented: $showResetConfirmation) {
                 Button("Reset", role: .destructive) {
                     resetToDefaults()
@@ -102,6 +112,174 @@ struct SettingsView: View {
             .navigationDestination(isPresented: $showPositionsManagement) {
                 PositionsManagementView(customOptionsManager: customOptionsManager)
             }
+            .navigationDestination(isPresented: $showAccount) {
+                AccountView()
+            }
+        }
+    }
+
+    // MARK: - Account
+
+    /// Sits first in Settings because it is the entry point to everything cloud-related.
+    /// Signed out it sells the idea and offers a way in; signed in it shows who you are, the
+    /// current plan, and a route to the full account screen (including deletion).
+    private var accountSection: some View {
+        Section {
+            if let profile = authService.state.profile {
+                // A `Button` + `navigationDestination` rather than a `NavigationLink`: wrapping a
+                // link around the whole card makes the List draw its own disclosure indicator
+                // outside the card and shrink the card to fit it, which is what made this row
+                // narrower than every other card on the screen. The sibling rows (Coachlytics Pro,
+                // Manage Skills, Manage Positions) all navigate this way and own their chevron.
+                Button {
+                    showAccount = true
+                } label: {
+                    SettingsSectionCard(accent: AppTheme.brandAccent) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [AppTheme.brandAccent, AppTheme.brandDeepBlue],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 42, height: 42)
+
+                                Text(profile.initials)
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(profile.resolvedDisplayName)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(AppTheme.primaryText(colorScheme))
+
+                                if !profile.email.isEmpty {
+                                    Text(profile.email)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+
+                            Spacer(minLength: 0)
+
+                            Text(entitlements.isPro ? "Pro" : "Free")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundStyle(entitlements.isPro ? AppTheme.goldAccent : AppTheme.mutedText(colorScheme))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule().fill(
+                                        (entitlements.isPro ? AppTheme.goldAccent : AppTheme.mutedText(colorScheme))
+                                            .opacity(0.15)
+                                    )
+                                )
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            } else {
+                SettingsSectionCard(accent: AppTheme.brandAccent) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "icloud.and.arrow.up.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(AppTheme.brandAccent)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Sign in to back up your data")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(AppTheme.primaryText(colorScheme))
+
+                                Text("Keep your season safe and share it with your club.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            Spacer(minLength: 0)
+                        }
+
+                        HStack(spacing: 10) {
+                            Button {
+                                showSignUp = true
+                            } label: {
+                                Text("Create Account")
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 40)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .fill(AppTheme.brandAccent)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                showSignIn = true
+                            } label: {
+                                Text("Sign In")
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(AppTheme.brandAccent)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 40)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(AppTheme.brandAccent.opacity(0.45), lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            }
+
+            if !entitlements.isPro {
+                Button {
+                    showPaywall = true
+                } label: {
+                    SettingsSectionCard(accent: AppTheme.goldAccent) {
+                        HStack {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(AppTheme.goldAccent)
+
+                            Text("Coachlytics Pro")
+                                .foregroundStyle(AppTheme.primaryText(colorScheme))
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            }
+        } header: {
+            Label("Account", systemImage: "person.crop.circle")
+        } footer: {
+            Text("Cloud backup and clubs are coming soon. Everything else works without an account.")
         }
     }
 

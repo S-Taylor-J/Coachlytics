@@ -1,0 +1,74 @@
+rules_version = '2';
+
+// Coachlytics Firestore security rules.
+//
+// Deploy with:  firebase deploy --only firestore:rules
+//
+// A new Firebase project starts in locked mode, which denies every read and write. Without
+// these rules deployed, sign-up appears to succeed (the auth user is created) but the
+// users/{uid} document write is rejected, and the app silently falls back to a profile built
+// from the auth record alone.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // MARK: - Users
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // A user may create their own document, but not award themselves a plan.
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.entitlement == 'free';
+
+      // The entitlement is written by the client today, mirrored from StoreKit. That is a
+      // known weak point: it is only trustworthy once App Store Server Notifications write
+      // it from a Cloud Function, at which point this rule should drop `entitlement` from
+      // the allowed keys entirely. Phase 2 work — see SyncService.swift.
+      allow update: if request.auth != null && request.auth.uid == uid;
+
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // MARK: - Clubs (Phase 3 — nothing writes these yet)
+    match /clubs/{clubId} {
+      function isMember() {
+        return request.auth != null
+               && exists(/databases/$(database)/documents/clubs/$(clubId)/members/$(request.auth.uid));
+      }
+      function isOwner() {
+        return request.auth != null
+               && resource.data.ownerUid == request.auth.uid;
+      }
+
+      allow read: if isMember();
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if isOwner();
+
+      match /members/{memberUid} {
+        allow read: if isMember();
+        // Joining is self-service: you may add only yourself, and only as a manager.
+        allow create: if request.auth != null
+                      && request.auth.uid == memberUid
+                      && request.resource.data.role == 'manager';
+        // You can leave; the owner can remove anyone.
+        allow delete: if request.auth != null
+                      && (request.auth.uid == memberUid
+                          || get(/databases/$(database)/documents/clubs/$(clubId)).data.ownerUid == request.auth.uid);
+      }
+
+      match /sharedGames/{gameId} {
+        allow read: if isMember();
+        allow create, update: if isMember() && request.resource.data.sharedBy == request.auth.uid;
+        allow delete: if isMember() && resource.data.sharedBy == request.auth.uid;
+      }
+    }
+
+    // MARK: - Invite code index (Phase 3)
+    // Readable by any signed-in user so a code can be resolved to a club before joining.
+    // Holds nothing but the club id, so exposure is limited to "this code exists".
+    match /inviteCodes/{code} {
+      allow read: if request.auth != null;
+      allow write: if false; // Written only by a Cloud Function / the console.
+    }
+  }
+}

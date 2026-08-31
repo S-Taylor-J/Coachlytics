@@ -1,0 +1,69 @@
+{
+  "identifier" : "C0AC4171-C5D2-4E1F-9A73-000000000001",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "coachlytics",
+    "_developerTeamID" : "FQDB9ZRDT2",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "en_GB",
+    "_storefront" : "GBR",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "C0AC4171-C5D2-4E1F-9A73-000000000100",
+      "localizations" : [],
+      "name" : "Coachlytics Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "C0AC4171-C5D2-4E1F-9A73-000000000101",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Cloud backup, multi-device sync and clubs.",
+              "displayName" : "Pro Monthly",
+              "locale" : "en_GB"
+            }
+          ],
+          "productID" : "com.ts.coachlytics.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Monthly",
+          "subscriptionGroupID" : "C0AC4171-C5D2-4E1F-9A73-000000000100",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "24.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "C0AC4171-C5D2-4E1F-9A73-000000000102",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Cloud backup, multi-device sync and clubs. Best value.",
+              "displayName" : "Pro Yearly",
+              "locale" : "en_GB"
+            }
+          ],
+          "productID" : "com.ts.coachlytics.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pro Yearly",
+          "subscriptionGroupID" : "C0AC4171-C5D2-4E1F-9A73-000000000100",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
